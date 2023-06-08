@@ -4,14 +4,12 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 import spacy
-import uuid
 import matplotlib.animation as animation
 import queue
 import keyboard
 from datetime import datetime
 from matplotlib.patches import Ellipse
 
-# make a list of available languages, then a mapping of language to model and language for google recognition
 languages = ['en', 'de']
 models = {
     'en': 'en_core_web_sm',
@@ -29,18 +27,19 @@ reset_words = {
 
 selected_lang = 'de'
 
+layouts = [nx.spring_layout, nx.shell_layout]
+selected_layout = 0
+
 nlp = spacy.load(models[selected_lang])
 
-# Initialize recognizer
 r = sr.Recognizer()
-
-# Initialize an empty var to store accumulated text
 global accumulated_text
 accumulated_text = ""
 
 # use current timestamp as unique identifier for the transcript
-transcript_id = datetime.now().strftime("%Y%m%d-%H%M%S")
-transcript_file = f"transcripts/transcript_{transcript_id}.txt"
+conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
+transcript_file = f"transcripts/transcript_{conversation_id}.txt"
+mindmap_file = f"mindmap_{conversation_id}.png"
 
 def voice_to_text(q, stop_event):
     # Function to handle speech recognition
@@ -48,9 +47,6 @@ def voice_to_text(q, stop_event):
         try:
             text = r.recognize_google(audio, language=google_lang[selected_lang])
             q.put(text)  # Put the recognized text in the queue
-            with open(transcript_file, 'a') as file:
-                text_to_append = text + '\n'
-                file.write(text_to_append)
         except sr.UnknownValueError:
             print("Speech recognition could not understand audio.")
         except sr.RequestError as e:
@@ -148,7 +144,8 @@ def update_plot(num_frames, q):
     ratio = fig_width / fig_height
 
     # Scale and adjust node positions based on the scaling factor
-    pos = nx.spring_layout(G, seed=42, scale=min_dimension )
+    #pos = nx.spring_layout(G, seed=42, scale=min_dimension )
+    pos = layouts[selected_layout](G, scale=min_dimension)
 
     # Draw nodes with labels and circles
     for n in G.nodes():
@@ -196,10 +193,25 @@ lock = threading.Lock()
 def stop_key_press(event):
     with lock:
         print("Stopping...")
+        plt.savefig(f"maps/{mindmap_file}")
+        with open(transcript_file, 'w') as file:
+            file.write(accumulated_text)
         stop_event.set()
+
+def handle_lang_change(event):
+    global selected_lang
+    selected_lang = languages[1] if selected_lang == languages[0] else languages[0]
+    print(f"Changed language to {selected_lang}")
+
+def handle_layout_change(event):
+    global selected_layout
+    selected_layout = (selected_layout + 1) % len(layouts)
+    print(f"Changed layout to {layouts[selected_layout].__name__}")
 
 # Register the stop key press callback
 keyboard.on_press_key("q", stop_key_press)
+keyboard.on_press_key("F2", handle_lang_change)
+keyboard.on_press_key("F3", handle_layout_change)
 
 # Create a thread for continuous audio recording
 audio_thread = threading.Thread(target=voice_to_text, args=(text_queue, stop_event))
@@ -211,12 +223,6 @@ if not os.path.exists('./maps'):
     os.makedirs('./maps')
 if not os.path.exists('./transcripts'):
     os.makedirs('./transcripts')
-
-# Generate a random ID
-random_id = str(uuid.uuid4().hex)
-
-# Create the filename with the random ID
-filename = f"mindmap_{random_id}"
 
 # Define the animation
 ani = animation.FuncAnimation(fig, update_plot, fargs=(text_queue,), interval=2000, cache_frame_data=False)
