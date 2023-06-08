@@ -217,9 +217,16 @@ def handle_lang_change(event):
     print(f"Changed language to {selected_lang}")
 
 
+def handle_reset(event):
+    global accumulated_text
+    accumulated_text = ""
+    print("Resetting...")
+
+
 # Register the stop key press callback
-keyboard.on_press_key("q", stop_key_press)
-keyboard.on_press_key("F1", handle_lang_change)
+keyboard.on_press_key("F1", stop_key_press)
+keyboard.on_press_key("F2", handle_lang_change)
+keyboard.on_press_key("F3", handle_reset)
 
 # Create a thread for continuous audio recording
 audio_thread = threading.Thread(target=voice_to_text, args=(text_queue, stop_event))
