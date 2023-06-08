@@ -4,26 +4,30 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 import spacy
-import matplotlib.animation as animation
 import queue
 import keyboard
 from datetime import datetime
 from matplotlib.patches import Ellipse
 
-def voice_to_text(q, stop_event):
+
+def voice_to_text(q, stop_event_ref):
     # Function to handle speech recognition
-    def recognize_audio(audio):
+    def recognize_audio(audio_source):
         try:
-            text = r.recognize_google(audio, language=google_lang[selected_lang])
+            text = r.recognize_google(audio_source, language=google_lang[selected_lang])
             q.put(text)  # Put the recognized text in the queue
+            print(f"Recognized Text: {text}")
+            update_plot(0, q)  # Update the plot
         except sr.UnknownValueError:
             print("Speech recognition could not understand audio.")
         except sr.RequestError as e:
             print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        except Exception as e:
+            print(e)
 
     # Record audio continuously until stop event is set
     with sr.Microphone(device_index=0) as source:
-        while not stop_event.is_set():
+        while not stop_event_ref.is_set():
             print("Recording audio...")
             try:
                 audio = r.listen(source, phrase_time_limit=5)
@@ -84,11 +88,9 @@ def create_mind_map(proximity_links):
 
 def update_plot(num_frames, q):
     global accumulated_text
-    logical_links = []
     # Check if new text is available in the queue
     while not q.empty():
         text = q.get()  # Get the latest recognized text
-        print(f"Converted Text: {text}")
         if text == reset_words[selected_lang]:
             accumulated_text = ""
             print("Resetting...")
@@ -147,7 +149,6 @@ def update_plot(num_frames, q):
 
     # Refresh the plot
     plt.draw()
-    plt.pause(0.001)
 
 
 languages = ['en', 'de']
@@ -232,13 +233,5 @@ if not os.path.exists('./maps'):
 if not os.path.exists('./transcripts'):
     os.makedirs('./transcripts')
 
-# Define the animation
-ani = animation.FuncAnimation(fig, update_plot, fargs=(text_queue,), interval=2000, cache_frame_data=False)
-
 # Show the live plot
 plt.show()
-
-# Set the stop event to stop audio recording thread
-with lock:
-    stop_event.set()
-    print("Stopped")
