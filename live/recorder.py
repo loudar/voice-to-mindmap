@@ -1,13 +1,14 @@
+import sys
 import threading
 import speech_recognition as sr
-import networkx as nx
-import matplotlib.pyplot as plt
 import os
-import spacy
-import queue
 import keyboard
 from datetime import datetime
-from matplotlib.patches import Ellipse
+
+if len(sys.argv) > 1:
+    timeout = int(sys.argv[1])
+else:
+    timeout = -1
 
 
 def voice_to_text(stop_event_ref):
@@ -113,5 +114,6 @@ if not os.path.exists('maps'):
 if not os.path.exists('transcripts'):
     os.makedirs('transcripts')
 
-# Show the live plot
-plt.show()
+if timeout > 0:
+    print(f"Recording for {timeout} seconds before stopping...")
+    stop_event.wait(timeout)
