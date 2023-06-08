@@ -39,8 +39,9 @@ global accumulated_text
 accumulated_text = ""
 
 # use current timestamp as unique identifier for the transcript
-transcript_id = datetime.now().strftime("%Y%m%d-%H%M%S")
-transcript_file = f"transcripts/transcript_{transcript_id}.txt"
+conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
+transcript_file = f"transcripts/transcript_{conversation_id}.txt"
+mindmap_file = f"mindmap_{conversation_id}.svg"
 
 def voice_to_text(q, stop_event):
     # Function to handle speech recognition
@@ -196,6 +197,7 @@ lock = threading.Lock()
 def stop_key_press(event):
     with lock:
         print("Stopping...")
+        plt.savefig(f"maps/{mindmap_file}")
         stop_event.set()
 
 # Register the stop key press callback
@@ -211,12 +213,6 @@ if not os.path.exists('./maps'):
     os.makedirs('./maps')
 if not os.path.exists('./transcripts'):
     os.makedirs('./transcripts')
-
-# Generate a random ID
-random_id = str(uuid.uuid4().hex)
-
-# Create the filename with the random ID
-filename = f"mindmap_{random_id}"
 
 # Define the animation
 ani = animation.FuncAnimation(fig, update_plot, fargs=(text_queue,), interval=2000, cache_frame_data=False)
