@@ -17,7 +17,7 @@ def voice_to_text(q, stop_event_ref):
             text = r.recognize_google(audio_source, language=google_lang[selected_lang])
             q.put(text)  # Put the recognized text in the queue
             print(f"Recognized Text: {text}")
-            update_plot(0, q)  # Update the plot
+            update_plot(q)
         except sr.UnknownValueError:
             print("Speech recognition could not understand audio.")
         except sr.RequestError as e:
@@ -86,7 +86,7 @@ def create_mind_map(proximity_links):
     return G
 
 
-def update_plot(num_frames, q):
+def update_plot(q):
     global accumulated_text
     # Check if new text is available in the queue
     while not q.empty():
@@ -97,6 +97,8 @@ def update_plot(num_frames, q):
             return
 
         accumulated_text += text + " "
+        with open(transcript_file, 'a') as file:
+            file.write(text)
 
     # Extract logical links from the new text
     logical_links = extract_logical_links(accumulated_text)
@@ -118,8 +120,13 @@ def update_plot(num_frames, q):
     ratio = fig_width / fig_height
 
     # Scale and adjust node positions based on the scaling factor
-    # pos = nx.spring_layout(G, seed=42, scale=min_dimension )
-    pos = layouts[selected_layout](G, scale=min_dimension)
+    planar = True
+    try:
+        pos = nx.planar_layout(G, center=(0, 0))
+    except nx.NetworkXException as e:
+        print(f"Planar layout not possible. Switching to shell layout: {e}")
+        planar = False
+        pos = nx.shell_layout(G, scale=min_dimension)
 
     # Draw nodes with labels and circles
     for n in G.nodes():
@@ -131,11 +138,12 @@ def update_plot(num_frames, q):
         ellipse_height = node_size
 
         # Create and add the circle patch using the scaled node size
-        ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
-        plt.gca().add_patch(ellipse)
+        if not planar:
+            ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
+            plt.gca().add_patch(ellipse)
 
         # Draw the node label
-        plt.text(x, y, n, color='black', ha='center', va='center')
+        plt.text(x, y, n, color='black', ha='center', va='center', fontsize=8)
 
     # Draw edges
     edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
@@ -148,7 +156,11 @@ def update_plot(num_frames, q):
     plt.gcf().set_size_inches(fig_width, fig_height)
 
     # Refresh the plot
+    print("Updating plot...")
     plt.draw()
+    plt.pause(0.001)
+
+    plt.savefig(f"maps/{mindmap_file}")
 
 
 languages = ['en', 'de']
@@ -167,9 +179,6 @@ reset_words = {
 }
 
 selected_lang = 'de'
-
-layouts = [nx.spring_layout, nx.shell_layout]
-selected_layout = 0
 
 nlp = spacy.load(models[selected_lang])
 
@@ -199,9 +208,6 @@ lock = threading.Lock()
 def stop_key_press(event):
     with lock:
         print("Stopping...")
-        plt.savefig(f"maps/{mindmap_file}")
-        with open(transcript_file, 'w') as file:
-            file.write(accumulated_text)
         stop_event.set()
 
 
@@ -211,16 +217,9 @@ def handle_lang_change(event):
     print(f"Changed language to {selected_lang}")
 
 
-def handle_layout_change(event):
-    global selected_layout
-    selected_layout = (selected_layout + 1) % len(layouts)
-    print(f"Changed layout to {layouts[selected_layout].__name__}")
-
-
 # Register the stop key press callback
 keyboard.on_press_key("q", stop_key_press)
-keyboard.on_press_key("F2", handle_lang_change)
-keyboard.on_press_key("F3", handle_layout_change)
+keyboard.on_press_key("F1", handle_lang_change)
 
 # Create a thread for continuous audio recording
 audio_thread = threading.Thread(target=voice_to_text, args=(text_queue, stop_event))
