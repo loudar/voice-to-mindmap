@@ -156,11 +156,9 @@ def update_plot(q):
     plt.gcf().set_size_inches(fig_width, fig_height)
 
     # Refresh the plot
-    print("Updating plot...")
     plt.draw()
+    plt.savefig(plot_file, bbox_inches='tight', pad_inches=0.1)
     plt.pause(0.001)
-
-    plt.savefig(f"maps/{mindmap_file}")
 
 
 languages = ['en', 'de']
@@ -183,13 +181,12 @@ selected_lang = 'de'
 nlp = spacy.load(models[selected_lang])
 
 r = sr.Recognizer()
-global accumulated_text
 accumulated_text = ""
 
 # use current timestamp as unique identifier for the transcript
 conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
 transcript_file = f"transcripts/transcript_{conversation_id}.txt"
-mindmap_file = f"mindmap_{conversation_id}.png"
+plot_file = f"maps/mindmap_{conversation_id}.svg"
 
 # Create a figure and axes for the plot
 fig, ax = plt.subplots()
@@ -218,14 +215,17 @@ def handle_lang_change(event):
 
 
 def handle_reset(event):
-    global accumulated_text
+    global accumulated_text, conversation_id, transcript_file, plot_file
     accumulated_text = ""
     print("Resetting...")
+    conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
+    transcript_file = f"transcripts/transcript_{conversation_id}.txt"
+    plot_file = f"maps/mindmap_{conversation_id}.svg"
 
 
 # Register the stop key press callback
-keyboard.on_press_key("F1", stop_key_press)
-keyboard.on_press_key("F2", handle_lang_change)
+keyboard.on_press_key("F2", stop_key_press)
+keyboard.on_press_key("F4", handle_lang_change)
 keyboard.on_press_key("F3", handle_reset)
 
 # Create a thread for continuous audio recording
