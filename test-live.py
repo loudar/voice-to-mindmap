@@ -10,37 +10,6 @@ import keyboard
 from datetime import datetime
 from matplotlib.patches import Ellipse
 
-languages = ['en', 'de']
-models = {
-    'en': 'en_core_web_sm',
-    'de': 'de_core_news_sm'
-}
-google_lang = {
-    'en': 'en-US',
-    'de': 'de-DE'
-}
-google_lang_arr = ['en-US', 'de-DE']
-reset_words = {
-    'en': 'reset',
-    'de': 'zurücksetzen'
-}
-
-selected_lang = 'de'
-
-layouts = [nx.spring_layout, nx.shell_layout]
-selected_layout = 0
-
-nlp = spacy.load(models[selected_lang])
-
-r = sr.Recognizer()
-global accumulated_text
-accumulated_text = ""
-
-# use current timestamp as unique identifier for the transcript
-conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
-transcript_file = f"transcripts/transcript_{conversation_id}.txt"
-mindmap_file = f"mindmap_{conversation_id}.png"
-
 def voice_to_text(q, stop_event):
     # Function to handle speech recognition
     def recognize_audio(audio):
@@ -70,6 +39,7 @@ def voice_to_text(q, stop_event):
             # Join the speech recognition thread with the main thread
             recognition_thread.join()
 
+
 def extract_logical_links(text):
     doc = nlp(text)
     logical_links = []
@@ -82,10 +52,11 @@ def extract_logical_links(text):
             elif token.pos_ == 'ADJ':
                 subjects.append(token.text)
 
-        for i in range(len(subjects)-1):
-            logical_links.append((subjects[i], subjects[i+1]))
+        for i in range(len(subjects) - 1):
+            logical_links.append((subjects[i], subjects[i + 1]))
 
     return logical_links
+
 
 def create_mind_map(proximity_links):
     G = nx.Graph()
@@ -109,6 +80,7 @@ def create_mind_map(proximity_links):
             G[word1][word2]['weight'] += 1
 
     return G
+
 
 def update_plot(num_frames, q):
     global accumulated_text
@@ -144,7 +116,7 @@ def update_plot(num_frames, q):
     ratio = fig_width / fig_height
 
     # Scale and adjust node positions based on the scaling factor
-    #pos = nx.spring_layout(G, seed=42, scale=min_dimension )
+    # pos = nx.spring_layout(G, seed=42, scale=min_dimension )
     pos = layouts[selected_layout](G, scale=min_dimension)
 
     # Draw nodes with labels and circles
@@ -177,6 +149,38 @@ def update_plot(num_frames, q):
     plt.draw()
     plt.pause(0.001)
 
+
+languages = ['en', 'de']
+models = {
+    'en': 'en_core_web_sm',
+    'de': 'de_core_news_sm'
+}
+google_lang = {
+    'en': 'en-US',
+    'de': 'de-DE'
+}
+google_lang_arr = ['en-US', 'de-DE']
+reset_words = {
+    'en': 'reset',
+    'de': 'zurücksetzen'
+}
+
+selected_lang = 'de'
+
+layouts = [nx.spring_layout, nx.shell_layout]
+selected_layout = 0
+
+nlp = spacy.load(models[selected_lang])
+
+r = sr.Recognizer()
+global accumulated_text
+accumulated_text = ""
+
+# use current timestamp as unique identifier for the transcript
+conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
+transcript_file = f"transcripts/transcript_{conversation_id}.txt"
+mindmap_file = f"mindmap_{conversation_id}.png"
+
 # Create a figure and axes for the plot
 fig, ax = plt.subplots()
 
@@ -186,8 +190,9 @@ text_queue = queue.Queue()
 # Create an event to control the audio recording
 stop_event = threading.Event()
 
-# Create a lock to synchronize access to the accumulated logical links
+# Create a lock to synchronize access to the accumulated text
 lock = threading.Lock()
+
 
 # Function to handle the stop key press
 def stop_key_press(event):
@@ -198,15 +203,18 @@ def stop_key_press(event):
             file.write(accumulated_text)
         stop_event.set()
 
+
 def handle_lang_change(event):
     global selected_lang
     selected_lang = languages[1] if selected_lang == languages[0] else languages[0]
     print(f"Changed language to {selected_lang}")
 
+
 def handle_layout_change(event):
     global selected_layout
     selected_layout = (selected_layout + 1) % len(layouts)
     print(f"Changed layout to {layouts[selected_layout].__name__}")
+
 
 # Register the stop key press callback
 keyboard.on_press_key("q", stop_key_press)
