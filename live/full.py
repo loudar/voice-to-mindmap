@@ -234,10 +234,10 @@ print("Starting audio thread...")
 audio_thread.start()
 
 # check if the directory exists. If not, create it
-if not os.path.exists('./maps'):
-    os.makedirs('./maps')
-if not os.path.exists('./transcripts'):
-    os.makedirs('./transcripts')
+if not os.path.exists('maps'):
+    os.makedirs('maps')
+if not os.path.exists('transcripts'):
+    os.makedirs('transcripts')
 
 # Show the live plot
 plt.show()

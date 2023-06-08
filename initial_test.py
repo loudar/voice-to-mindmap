@@ -121,8 +121,8 @@ print(f"Logical Links: {logical_links}")
 G = create_mind_map(logical_links)
 
 # check if the directory exists. If not, create it
-if not os.path.exists('./maps'):
-    os.makedirs('./maps')
+if not os.path.exists('live/maps'):
+    os.makedirs('live/maps')
 
 # Generate a random ID
 random_id = str(uuid.uuid4().hex)

@@ -1,4 +1,4 @@
 *.mp3
-/transcripts/*
-/maps/*
+/live/transcripts/*
+/live/maps/*
 *.idea
