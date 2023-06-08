@@ -73,19 +73,23 @@ def update_plot(text):
         if not planar:
             ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
             plt.gca().add_patch(ellipse)
+        else:
+            circle = Ellipse((x, y), width=ellipse_height * 0.1, height=ellipse_width * 0.1, color='green', alpha=0.3)
+            plt.gca().add_patch(circle)
 
         # Draw the node label
         plt.text(x, y, n, color='black', ha='center', va='center', fontsize=8)
 
     # Draw edges
     edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
-    nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color='blue', arrows=True, arrowstyle='-|>', arrowsize=12)
+    margin = 30
+    nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color='blue', arrows=True, arrowstyle='-|>', arrowsize=12, min_source_margin=margin, min_target_margin=margin)
 
     # Adjust plot limits
     plt.axis('off')
 
     # Update the plot size
-    size_factor = int(len(G.nodes()) / 75)
+    size_factor = len(G.nodes()) / 10
     print(f"Scaling by: {size_factor}")
     dpi = 100
     pixel_x = math.floor(fig_width * size_factor * dpi)
@@ -108,11 +112,12 @@ def update_plot(text):
 
     # Refresh the plot
     plt.draw()
-    plt.savefig(plot_file, bbox_inches='tight', pad_inches=0.1)
-    if os.path.isfile(latest_plot_file):
-        os.remove(latest_plot_file)
-    plt.savefig(latest_plot_file, bbox_inches='tight', pad_inches=0.1)
-    plt.pause(0.001)
+    print(f"Saving plot to: {plot_file}")
+    try:
+        plt.savefig(plot_file, bbox_inches='tight', pad_inches=0.1)
+        os.system(f"start {plot_file}")
+    except Exception as e:
+        print(f"Error saving plot: {e}")
 
 
 def extract_logical_links(text):
@@ -148,7 +153,7 @@ def create_mind_map(proximity_links):
         else:
             tempnodes[word1] += 1
 
-        if word2 not in G.nodes():
+        if word2 not in tempnodes:
             tempnodes[word2] = 1
         else:
             tempnodes[word2] += 1
@@ -163,29 +168,32 @@ def create_mind_map(proximity_links):
         else:
             tempedges[word1][word2] += 1
 
-    sort_temp_edges = sorted(tempedges, key=lambda x: x, reverse=True)
-    top_10_percent_count = int(len(sort_temp_edges) * 0.1)
-    top_10_percent = sort_temp_edges[:top_10_percent_count]
-
-    for edge in top_10_percent:
-        if edge not in G.nodes():
-            G.add_node(edge, size=tempnodes[edge])
-
-        for node in tempedges[edge]:
-            if node not in G.nodes():
-                G.add_node(node, size=tempnodes[node])
-            if node not in G.edges():
-                G.add_edge(edge, node, weight=tempedges[edge][node])
-
-    for node in G.nodes():
-        if node not in tempedges:
-            continue
-
+    # convert to list
+    temp_edges = []
+    for node in tempedges:
         for edge in tempedges[node]:
-            if edge not in G.nodes():
-                continue
-            if edge not in G.edges():
-                G.add_edge(node, edge, weight=tempedges[node][edge])
+            temp_edges.append([node, edge, tempedges[node][edge]])
+
+    # sort and get top 100
+    sort_temp_edges = sorted(temp_edges, key=lambda x: x[2], reverse=True)
+    # top_10_percent_count = int(len(sort_temp_edges) * 0.1)
+    top_count = 50
+    top_list = sort_temp_edges[:top_count]
+
+    # convert back to dict
+    tempedges = {}
+    for edge in sort_temp_edges:
+        tempedges[edge[0]] = {}
+        tempedges[edge[0]][edge[1]] = edge[2]
+
+    for edge in top_list:
+        if edge[0] not in G.nodes():
+            G.add_node(edge[0], size=tempnodes[edge[0]])
+
+        if edge[1] not in G.nodes():
+            G.add_node(edge[1], size=tempnodes[edge[1]])
+
+        G.add_edge(edge[0], edge[1], weight=edge[2])
 
     print(f"Added {len(G.nodes())} nodes and {len(G.edges())} edges to graph.")
 
