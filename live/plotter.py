@@ -1,3 +1,5 @@
+import math
+import os
 import sys
 from datetime import datetime
 
@@ -83,11 +85,26 @@ def update_plot(text):
     plt.axis('off')
 
     # Update the plot size
-    plt.gcf().set_size_inches(fig_width, fig_height)
+    size_factor = int(len(G.nodes()) / 75)
+    print(f"Scaling by: {size_factor}")
+    dpi = 100
+    pixel_x = math.floor(fig_width * size_factor * dpi)
+    pixel_y = int(fig_height * size_factor * dpi)
+    print(f"Plot size: {pixel_x} x {pixel_y} px")
+    max_pixels = 2000
+    if pixel_x > max_pixels or pixel_y > max_pixels:
+        print(f"Plot size exceeds maximum of 5000 x 5000 px. Scaling down.")
+        reduction_factor = max_pixels / max(pixel_x, pixel_y)
+        size_factor *= reduction_factor
+        print(f"Now scaling by: {size_factor}")
+        print(f"New plot size: {pixel_x * reduction_factor} x {pixel_y * reduction_factor} px")
+    plt.gcf().set_size_inches(fig_width * size_factor, fig_height * size_factor)
 
     # Refresh the plot
     plt.draw()
     plt.savefig(plot_file, bbox_inches='tight', pad_inches=0.1)
+    if os.path.isfile(latest_plot_file):
+        os.remove(latest_plot_file)
     plt.savefig(latest_plot_file, bbox_inches='tight', pad_inches=0.1)
     plt.pause(0.001)
 
@@ -110,26 +127,46 @@ def extract_logical_links(text):
     return logical_links
 
 
+def sort_nodes_by_weight(g):
+    return sorted(g.nodes(), key=lambda node: g.nodes[node]['size'], reverse=True)
+
+
 def create_mind_map(proximity_links):
     G = nx.Graph()
+    tempnodes = []
+    tempedges = []
 
     for word1, word2 in proximity_links:
-        if word1 not in G.nodes():
-            G.add_node(word1, size=1)
+        if word1 not in tempnodes:
+            tempnodes[word1] = 1
         else:
-            G.nodes[word1]['size'] += 1
+            tempnodes[word1] += 1
 
         if word2 not in G.nodes():
-            G.add_node(word2, size=1)
+            tempnodes[word2] = 1
         else:
-            G.nodes[word2]['size'] += 1
+            tempnodes[word2] += 1
 
-        if not G.has_edge(word1, word2):
+        if not tempedges[word1][word2]:
             if word1 == word2:
                 continue
-            G.add_edge(word1, word2, weight=1)
+            tempedges[word1][word2] = 1
         else:
-            G[word1][word2]['weight'] += 1
+            tempedges[word1][word2] += 1
+
+    sort_temp_nodes = sorted(tempnodes, key=lambda x: x, reverse=True)
+    sort_temp_edges = sorted(tempedges, key=lambda x: x, reverse=True)
+    top_10_percent_count = int(len(sort_temp_nodes) * 0.1)
+    top_10_percent = sort_temp_nodes[:top_10_percent_count]
+
+    print(f"Top 10% nodes: {len(top_10_percent)}")
+
+    for edge in sort_temp_edges:
+        if edge[0] in top_10_percent and edge[1] in top_10_percent:
+            G.add_edge(edge[0], edge[1], weight=tempedges[edge[0]][edge[1]])
+
+    for node in top_10_percent:
+        G.add_node(node, size=tempnodes[node])
 
     return G
 
