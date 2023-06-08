@@ -98,6 +98,12 @@ def update_plot(text):
         size_factor *= reduction_factor
         print(f"Now scaling by: {size_factor}")
         print(f"New plot size: {pixel_x * reduction_factor} x {pixel_y * reduction_factor} px")
+    elif pixel_x < 500 or pixel_y < 500:
+        print(f"Plot size is too small. Scaling up.")
+        reduction_factor = 1500 / min(pixel_x, pixel_y)
+        size_factor *= reduction_factor
+        print(f"Now scaling by: {size_factor}")
+        print(f"New plot size: {pixel_x * reduction_factor} x {pixel_y * reduction_factor} px")
     plt.gcf().set_size_inches(fig_width * size_factor, fig_height * size_factor)
 
     # Refresh the plot
@@ -133,8 +139,8 @@ def sort_nodes_by_weight(g):
 
 def create_mind_map(proximity_links):
     G = nx.Graph()
-    tempnodes = []
-    tempedges = []
+    tempnodes = {}
+    tempedges = {}
 
     for word1, word2 in proximity_links:
         if word1 not in tempnodes:
@@ -147,26 +153,41 @@ def create_mind_map(proximity_links):
         else:
             tempnodes[word2] += 1
 
-        if not tempedges[word1][word2]:
+        if word1 not in tempedges:
+            tempedges[word1] = {}
+
+        if word2 not in tempedges[word1]:
             if word1 == word2:
                 continue
             tempedges[word1][word2] = 1
         else:
             tempedges[word1][word2] += 1
 
-    sort_temp_nodes = sorted(tempnodes, key=lambda x: x, reverse=True)
     sort_temp_edges = sorted(tempedges, key=lambda x: x, reverse=True)
-    top_10_percent_count = int(len(sort_temp_nodes) * 0.1)
-    top_10_percent = sort_temp_nodes[:top_10_percent_count]
+    top_10_percent_count = int(len(sort_temp_edges) * 0.1)
+    top_10_percent = sort_temp_edges[:top_10_percent_count]
 
-    print(f"Top 10% nodes: {len(top_10_percent)}")
+    for edge in top_10_percent:
+        if edge not in G.nodes():
+            G.add_node(edge, size=tempnodes[edge])
 
-    for edge in sort_temp_edges:
-        if edge[0] in top_10_percent and edge[1] in top_10_percent:
-            G.add_edge(edge[0], edge[1], weight=tempedges[edge[0]][edge[1]])
+        for node in tempedges[edge]:
+            if node not in G.nodes():
+                G.add_node(node, size=tempnodes[node])
+            if node not in G.edges():
+                G.add_edge(edge, node, weight=tempedges[edge][node])
 
-    for node in top_10_percent:
-        G.add_node(node, size=tempnodes[node])
+    for node in G.nodes():
+        if node not in tempedges:
+            continue
+
+        for edge in tempedges[node]:
+            if edge not in G.nodes():
+                continue
+            if edge not in G.edges():
+                G.add_edge(node, edge, weight=tempedges[node][edge])
+
+    print(f"Added {len(G.nodes())} nodes and {len(G.edges())} edges to graph.")
 
     return G
 
