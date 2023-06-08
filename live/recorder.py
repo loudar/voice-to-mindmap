@@ -78,6 +78,7 @@ lock = threading.Lock()
 def stop_key_press(event):
     with lock:
         print("Stopping...")
+        os.system(f"python plotter.py {transcript_file}")
         stop_event.set()
 
 

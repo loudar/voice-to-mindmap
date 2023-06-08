@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -19,7 +20,10 @@ plot_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
 plot_file = f"{plot_folder}mindmap_{plot_id}.svg"
 latest_plot_file = f"{plot_folder}mindmap_latest.svg"
 
-source_file = "transcripts/transcript_latest.txt"
+if len(sys.argv) > 1:
+    source_file = sys.argv[1]
+else:
+    source_file = "transcripts/transcript_latest.txt"
 
 # Create a figure and axes for the plot
 fig, ax = plt.subplots()
