@@ -1,4 +1,5 @@
 *.mp3
-/live/transcripts/*
-/live/maps/*
+/transcripts/*
+/maps/*
 *.idea
+config.json
