@@ -17,6 +17,8 @@ models = {
 selected_lang = 'de'
 
 nlp = spacy.load(models[selected_lang])
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet')
 
 plot_folder = "maps/"
 plot_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
@@ -65,17 +67,20 @@ def update_plot(text):
     for n in G.nodes():
         x, y = pos[n]
         node_size = G.nodes[n]['size'] * min_dimension * 0.01
+        if planar:
+            node_size *= 0.5
 
-        # Calculate the width and height of the ellipse
-        ellipse_width = node_size * (1 / ratio)
-        ellipse_height = node_size
-
-        # Create and add the circle patch using the scaled node size
         if not planar:
+            # Calculate the width and height of the ellipse
+            ellipse_width = node_size * (1 / ratio)
+            ellipse_height = node_size
+
+            # Create and add the ellipse patch using the scaled node size
             ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
             plt.gca().add_patch(ellipse)
         else:
-            circle = Ellipse((x, y), width=ellipse_height * 0.1, height=ellipse_width * 0.1, color='green', alpha=0.3)
+            # Create and add the circle patch using the scaled node size
+            circle = Ellipse((x, y), width=node_size, height=node_size, color='green', alpha=0.3)
             plt.gca().add_patch(circle)
 
         # Draw the node label
@@ -84,7 +89,8 @@ def update_plot(text):
     # Draw edges
     edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
     margin = 30
-    nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color='blue', arrows=True, arrowstyle='-|>', arrowsize=12, min_source_margin=margin, min_target_margin=margin)
+    nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color='blue', arrows=True, arrowstyle='-|>', arrowsize=12,
+                           min_source_margin=margin, min_target_margin=margin)
 
     # Adjust plot limits
     plt.axis('off')
@@ -223,10 +229,10 @@ def create_mind_map(proximity_links):
 
     for edge in top_list:
         if edge[0] not in G.nodes():
-            G.add_node(edge[0], size=tempnodes[edge[0]])
+            G.add_node(edge[0], size=tempnodes[edge[0]], category=get_word_category(edge[0]))
 
         if edge[1] not in G.nodes():
-            G.add_node(edge[1], size=tempnodes[edge[1]])
+            G.add_node(edge[1], size=tempnodes[edge[1]], category=get_word_category(edge[1]))
 
         G.add_edge(edge[0], edge[1], weight=edge[2])
 
