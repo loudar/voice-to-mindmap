@@ -9,6 +9,7 @@ babelnet = "*"
 networkx = "*"
 spacy = "*"
 nltk = "*"
+levenshtein = "*"
 
 [dev-packages]
 

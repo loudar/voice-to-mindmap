@@ -1,5 +1,6 @@
 *.mp3
 /transcripts/*
 /maps/*
+/cache/*
 *.idea
 babelnet_conf.yml

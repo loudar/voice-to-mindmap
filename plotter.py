@@ -1,14 +1,18 @@
+import json
 import math
 import os
 import sys
+import time
 from datetime import datetime
+
+import Levenshtein as Levenshtein
 from matplotlib.patches import Ellipse
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import networkx as nx
 import nltk as nltk
 import spacy
-import babelnet
+import babelnet as bn
 
 languages = ['en', 'de']
 models = {
@@ -75,7 +79,7 @@ def update_plot(text):
 
     print(f"Categories: {categories}")
     color_mapping = {}
-    color_palette = cm.get_cmap('hsv', len(categories))
+    color_palette = cm.get_cmap('rainbow', len(categories))
 
     for i, category in enumerate(categories):
         color_mapping[category] = color_palette(i)
@@ -85,14 +89,14 @@ def update_plot(text):
         x, y = pos[n]
         node_size = G.nodes[n]['size'] * min_dimension * 0.02 / max_node_size
 
-        if not planar:
-            ellipse_width = node_size * (1 / ratio)
-            ellipse_height = node_size
-            ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
-            plt.gca().add_patch(ellipse)
-        else:
-            circle = Ellipse((x, y), width=node_size, height=node_size, color='green', alpha=0.3)
-            plt.gca().add_patch(circle)
+        # if not planar:
+        #     ellipse_width = node_size * (1 / ratio)
+        #     ellipse_height = node_size
+        #     ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
+        #     plt.gca().add_patch(ellipse)
+        # else:
+        #     circle = Ellipse((x, y), width=node_size, height=node_size, color='green', alpha=0.3)
+        #     plt.gca().add_patch(circle)
 
         # Get the category of the node
         category = G.nodes[n].get('category')
@@ -103,7 +107,8 @@ def update_plot(text):
             label_color = color_mapping[category]
 
         # Draw the node label with the specified color
-        plt.text(x, y, n, color=label_color, ha='center', va='center', fontsize=8)
+        font_size = 8 + G.nodes[n]['size'] * 0.5
+        plt.text(x, y, n, color=label_color, ha='center', va='center', fontsize=font_size)
 
     # Draw edges
     edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
@@ -158,39 +163,111 @@ def extract_logical_links(text):
     return logical_links
 
 
-
 def get_word_category(word, language='en'):
-    bn = babelnet.BabelNetAPI()
+    if not word:
+        return 'unknown'
+
+    word_lower = word.lower()
+    cached_category = get_cached_word_categories(word_lower, language)
+    if cached_category != '__not_cached__':
+        print(f"Word category for '{word}' is cached as '{cached_category}'.")
+        return cached_category
 
     # Query BabelNet
-    synsets = bn.getSynsetIds(word, lang=language)
+    print(f"Querying BabelNet for '{word}'.")
+    babel_lang = None
+    if language == 'en':
+        babel_lang = bn.Language.EN
+    elif language == 'de':
+        babel_lang = bn.Language.DE
+    else:
+        Exception(f"Language {language} not supported.")
 
-    # If synsets were found
-    if synsets:
-        # Get the first synset
-        first_synset = bn.getSynset(synsets[0]['id'])
-        # Get the main sense (most representative word)
-        main_sense = first_synset.getMainSense()
-        # Extract the part of speech from the main sense
-        pos_tag = main_sense.split('#')[1][0]
+    synsets = bn.get_synsets(word, from_langs=[babel_lang], to_langs=[babel_lang])
 
-        # Map POS tag to BabelNet tag
-        if pos_tag == 'n':
-            bn_tag = 'NOUN'
-        elif pos_tag == 'v':
-            bn_tag = 'VERB'
-        elif pos_tag == 'a':
-            bn_tag = 'ADJ'
-        elif pos_tag == 'r':
-            bn_tag = 'ADV'
+    if not synsets:
+        cache_word_categories(word, 'unknown', language)
+        return 'unknown'
+
+    word_category_map = {}
+    for synset in synsets:
+        raw_categories = synset.categories(babel_lang)
+        string_categories = [category.category.lower() for category in raw_categories]
+        lemma_lower = synset.main_sense_preferably_in(babel_lang).full_lemma.lower()
+        if word_lower in string_categories:
+            string_categories.remove(word_lower)
+
+        if len(string_categories) == 0:
+            continue
+
+        word_category_map[lemma_lower] = string_categories
+
+    if word_lower in word_category_map:
+        closest = closest_match(word_lower, word_category_map[word_lower])
+        cache_word_categories(word_lower, closest, language)
+        print(f"Word category for '{word}' is '{closest}' (out of {word_category_map[word_lower]}).")
+        return closest
+    else:
+        word_keys = word_category_map.keys()
+        min_word = closest_match(word_lower, word_keys)
+
+        if min_word:
+            print(f"Word '{word}' not found in BabelNet. Closest match is '{min_word}' (out of {word_keys}).")
+            closest = closest_match(word_lower, word_category_map[min_word])
+            cache_word_categories(word_lower, closest, language)
+            cache_word_categories(min_word, closest, language)
+            print(f"Word category for closest match '{min_word}' is '{closest}' (out of {word_category_map[min_word]}).")
+            return closest
         else:
-            bn_tag = None
+            cache_word_categories(word, 'unknown', language)
+            return 'unknown'
 
-        # Return the category
-        return bn_tag
 
-    return None
+def closest_match(word, str_list):
+    min_distance = 100
+    min_word = None
+    for w in str_list:
+        distance = Levenshtein.distance(word, w)
+        if distance < min_distance:
+            min_distance = distance
+            min_word = w
 
+    return min_word
+
+
+def cache_word_categories(word, category, language):
+    filename = create_word_cache(language)
+    with open(filename, 'r') as f:
+        data = json.load(f)
+
+    if word not in data:
+        data[word] = category
+
+    with open(filename, 'w') as f:
+        json.dump(data, f)
+
+
+def get_cached_word_categories(word, language):
+    filename = create_word_cache(language)
+    with open(filename, 'r') as f:
+        data = json.load(f)
+
+    if word in data:
+        return data[word]
+    else:
+        return '__not_cached__'
+
+
+def create_word_cache(language):
+    folder = "cache"
+    filename = f"{folder}/{language}.json"
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+    if not os.path.exists(filename):
+        with open(filename, 'w') as f:
+            f.write("{}")
+
+    return filename
 
 def sort_nodes_by_weight(g):
     return sorted(g.nodes(), key=lambda node: g.nodes[node]['size'], reverse=True)
