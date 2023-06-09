@@ -2,9 +2,10 @@ import math
 import os
 import sys
 from datetime import datetime
-
+from nltk.corpus import wordnet as wn
 import matplotlib.pyplot as plt
 import networkx as nx
+import nltk as nltk
 import spacy
 from matplotlib.patches import Ellipse
 
@@ -54,7 +55,7 @@ def update_plot(text):
     # Scale and adjust node positions based on the scaling factor
     planar = True
     try:
-        pos = nx.planar_layout(G, center=(0, 0))
+        pos = nx.spring_layout(G, center=(0, 0), weight='weight', scale=1.0, iterations=50)
     except nx.NetworkXException as e:
         print(f"Planar layout not possible. Switching to shell layout: {e}")
         planar = False
@@ -136,6 +137,40 @@ def extract_logical_links(text):
             logical_links.append((subjects[i], subjects[i + 1]))
 
     return logical_links
+
+
+def get_word_category(word):
+    # Tokenize the word
+    tokens = nltk.word_tokenize(word)
+
+    # Perform part-of-speech tagging
+    tagged_words = nltk.pos_tag(tokens)
+
+    # Retrieve the category of the word
+    if tagged_words:
+        _, pos_tag = tagged_words[0]
+
+        # Map POS tag to WordNet tag
+        if pos_tag.startswith('N'):
+            wn_tag = wn.NOUN
+        elif pos_tag.startswith('V'):
+            wn_tag = wn.VERB
+        elif pos_tag.startswith('J'):
+            wn_tag = wn.ADJ
+        elif pos_tag.startswith('R'):
+            wn_tag = wn.ADV
+        else:
+            wn_tag = None
+
+        # Get synsets associated with the word
+        if wn_tag:
+            synsets = wn.synsets(word, wn_tag)
+            if synsets:
+                # Get the first synset and retrieve its category
+                category = synsets[0].lexname().split('.')[0]
+                return category
+
+    return None
 
 
 def sort_nodes_by_weight(g):
