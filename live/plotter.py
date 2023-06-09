@@ -2,12 +2,13 @@ import math
 import os
 import sys
 from datetime import datetime
-from nltk.corpus import wordnet as wn
+from matplotlib.patches import Ellipse
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import networkx as nx
 import nltk as nltk
 import spacy
-from matplotlib.patches import Ellipse
+import babelnet
 
 languages = ['en', 'de']
 models = {
@@ -65,26 +66,44 @@ def update_plot(text):
 
     max_node_size = max([G.nodes[n]['size'] for n in G.nodes()])
 
+    # Create a color mapping dictionary for categories
+    categories = set()
+    for node in G.nodes():
+        category = G.nodes[node].get('category')
+        if category:
+            categories.add(category)
+
+    print(f"Categories: {categories}")
+    color_mapping = {}
+    color_palette = cm.get_cmap('hsv', len(categories))
+
+    for i, category in enumerate(categories):
+        color_mapping[category] = color_palette(i)
+
     # Draw nodes with labels and circles
     for n in G.nodes():
         x, y = pos[n]
         node_size = G.nodes[n]['size'] * min_dimension * 0.02 / max_node_size
 
         if not planar:
-            # Calculate the width and height of the ellipse
             ellipse_width = node_size * (1 / ratio)
             ellipse_height = node_size
-
-            # Create and add the ellipse patch using the scaled node size
             ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
             plt.gca().add_patch(ellipse)
         else:
-            # Create and add the circle patch using the scaled node size
             circle = Ellipse((x, y), width=node_size, height=node_size, color='green', alpha=0.3)
             plt.gca().add_patch(circle)
 
-        # Draw the node label
-        plt.text(x, y, n, color='black', ha='center', va='center', fontsize=8)
+        # Get the category of the node
+        category = G.nodes[n].get('category')
+
+        # Set the color of the node label based on the category
+        label_color = 'black'
+        if category:
+            label_color = color_mapping[category]
+
+        # Draw the node label with the specified color
+        plt.text(x, y, n, color=label_color, ha='center', va='center', fontsize=8)
 
     # Draw edges
     edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
@@ -97,24 +116,18 @@ def update_plot(text):
 
     # Update the plot size
     size_factor = len(G.nodes()) / 10
-    print(f"Scaling by: {size_factor}")
     dpi = 100
     pixel_x = math.floor(fig_width * size_factor * dpi)
     pixel_y = int(fig_height * size_factor * dpi)
-    print(f"Plot size: {pixel_x} x {pixel_y} px")
     max_pixels = 2000
     if pixel_x > max_pixels or pixel_y > max_pixels:
         print(f"Plot size exceeds maximum of 5000 x 5000 px. Scaling down.")
         reduction_factor = max_pixels / max(pixel_x, pixel_y)
         size_factor *= reduction_factor
-        print(f"Now scaling by: {size_factor}")
-        print(f"New plot size: {pixel_x * reduction_factor} x {pixel_y * reduction_factor} px")
     elif pixel_x < 500 or pixel_y < 500:
         print(f"Plot size is too small. Scaling up.")
         reduction_factor = 1500 / min(pixel_x, pixel_y)
         size_factor *= reduction_factor
-        print(f"Now scaling by: {size_factor}")
-        print(f"New plot size: {pixel_x * reduction_factor} x {pixel_y * reduction_factor} px")
     plt.gcf().set_size_inches(fig_width * size_factor, fig_height * size_factor)
 
     # Refresh the plot
@@ -145,38 +158,36 @@ def extract_logical_links(text):
     return logical_links
 
 
-def get_word_category(word):
-    # Tokenize the word
-    tokens = nltk.word_tokenize(word)
 
-    # Perform part-of-speech tagging
-    tagged_words = nltk.pos_tag(tokens)
+def get_word_category(word, language='en'):
+    bn = babelnet.BabelNetAPI('your_api_key_here')  # replace with your actual API key
 
-    # Retrieve the category of the word
-    if tagged_words:
-        _, pos_tag = tagged_words[0]
+    # Query BabelNet
+    synsets = bn.getSynsetIds(word, lang=language)
 
-        # Map POS tag to WordNet tag
-        if pos_tag.startswith('N'):
-            wn_tag = wn.NOUN
-        elif pos_tag.startswith('V'):
-            wn_tag = wn.VERB
-        elif pos_tag.startswith('J'):
-            wn_tag = wn.ADJ
-        elif pos_tag.startswith('R'):
-            wn_tag = wn.ADV
+    # If synsets were found
+    if synsets:
+        # Get the first synset
+        first_synset = bn.getSynset(synsets[0]['id'])
+        # Get the main sense (most representative word)
+        main_sense = first_synset.getMainSense()
+        # Extract the part of speech from the main sense
+        pos_tag = main_sense.split('#')[1][0]
+
+        # Map POS tag to BabelNet tag
+        if pos_tag == 'n':
+            bn_tag = 'NOUN'
+        elif pos_tag == 'v':
+            bn_tag = 'VERB'
+        elif pos_tag == 'a':
+            bn_tag = 'ADJ'
+        elif pos_tag == 'r':
+            bn_tag = 'ADV'
         else:
-            wn_tag = None
+            bn_tag = None
 
-        # Get synsets associated with the word
-        if wn_tag:
-            synsets = wn.synsets(word, wn_tag)
-            if synsets:
-                # Get the first synset and retrieve its category
-                category = synsets[0].lexname().split('.')[0]
-                return category
-
-    return None
+        # Return the category
+        return bn_tag
 
 
 def sort_nodes_by_weight(g):
@@ -229,10 +240,10 @@ def create_mind_map(proximity_links):
 
     for edge in top_list:
         if edge[0] not in G.nodes():
-            G.add_node(edge[0], size=tempnodes[edge[0]], category=get_word_category(edge[0]))
+            G.add_node(edge[0], size=tempnodes[edge[0]], category=get_word_category(edge[0], selected_lang))
 
         if edge[1] not in G.nodes():
-            G.add_node(edge[1], size=tempnodes[edge[1]], category=get_word_category(edge[1]))
+            G.add_node(edge[1], size=tempnodes[edge[1]], category=get_word_category(edge[1], selected_lang))
 
         G.add_edge(edge[0], edge[1], weight=edge[2])
 
