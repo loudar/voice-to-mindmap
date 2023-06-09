@@ -63,12 +63,12 @@ def update_plot(text):
         planar = False
         pos = nx.shell_layout(G, scale=min_dimension)
 
+    max_node_size = max([G.nodes[n]['size'] for n in G.nodes()])
+
     # Draw nodes with labels and circles
     for n in G.nodes():
         x, y = pos[n]
-        node_size = G.nodes[n]['size'] * min_dimension * 0.01
-        if planar:
-            node_size *= 0.5
+        node_size = G.nodes[n]['size'] * min_dimension * 0.02 / max_node_size
 
         if not planar:
             # Calculate the width and height of the ellipse
@@ -88,7 +88,7 @@ def update_plot(text):
 
     # Draw edges
     edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
-    margin = 30
+    margin = 10
     nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color='blue', arrows=True, arrowstyle='-|>', arrowsize=12,
                            min_source_margin=margin, min_target_margin=margin)
 
