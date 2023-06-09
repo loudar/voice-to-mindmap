@@ -9,14 +9,6 @@ import networkx as nx
 import nltk as nltk
 import spacy
 import babelnet
-import json
-
-def load_config(file_path):
-    with open(file_path) as config_file:
-        return json.load(config_file)
-
-config = load_config('./config.json')
-babelnet_api_key = config['babelnet_api_key']
 
 languages = ['en', 'de']
 models = {
@@ -168,7 +160,7 @@ def extract_logical_links(text):
 
 
 def get_word_category(word, language='en'):
-    bn = babelnet.BabelNetAPI(babelnet_api_key)
+    bn = babelnet.BabelNetAPI()
 
     # Query BabelNet
     synsets = bn.getSynsetIds(word, lang=language)

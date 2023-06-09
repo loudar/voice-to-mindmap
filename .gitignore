@@ -2,4 +2,4 @@
 /transcripts/*
 /maps/*
 *.idea
-config.json
+babelnet_conf.yml
