@@ -63,6 +63,7 @@ def create_plot(G, subgraph_positions):
 
     for node in G.nodes():
         category = G.nodes[node].get('category', 'default')  # Get the category property
+        size = G.degree[node]  # Calculate node size based on the count of connected nodes
 
         if category not in category_colors:
             # Generate a unique color for the category with good contrast against white
@@ -79,7 +80,7 @@ def create_plot(G, subgraph_positions):
             marker=dict(
                 showscale=False,
                 color=f"rgb{color}",
-                size=10,
+                size=size * 10,
                 line=dict(width=2)
             ),
             text=[node + f" ({category})"],

@@ -5,7 +5,7 @@ def create_mind_map_force(proximity_links):
     G = nx.Graph()
 
     # Add nodes and edges to the graph
-    add_nodes_and_edges_force(G, proximity_links)
+    add_nodes_and_edges(G, proximity_links)
 
     # List to hold subgraphs for nodes with the threshold condition
     subgraphs = []
@@ -34,7 +34,7 @@ def create_mind_map_force(proximity_links):
     return G, all_positions
 
 
-def add_nodes_and_edges_force(G, proximity_links):
+def add_nodes_and_edges(G, proximity_links):
     edge_weights = {}
     node_categories = {}
 
