@@ -44,6 +44,8 @@ def create_plot(G, subgraph_positions):
 
     category_colors = {}  # Dictionary to store unique colors per category
 
+    max_degree = max(dict(G.degree()).values())  # Calculate the maximum degree in the graph
+
     for edge in G.edges(data=True):
         x0, y0 = subgraph_positions[edge[0]]
         x1, y1 = subgraph_positions[edge[1]]
@@ -63,7 +65,7 @@ def create_plot(G, subgraph_positions):
 
     for node in G.nodes():
         category = G.nodes[node].get('category', 'default')  # Get the category property
-        size = G.degree[node]  # Calculate node size based on the count of connected nodes
+        size = G.degree[node] / max_degree  # Calculate relative node size based on the degree
 
         if category not in category_colors:
             # Generate a unique color for the category with good contrast against white
@@ -80,7 +82,7 @@ def create_plot(G, subgraph_positions):
             marker=dict(
                 showscale=False,
                 color=f"rgb{color}",
-                size=size * 10,
+                size=size * 50,  # Adjust the scaling factor as per your preference
                 line=dict(width=2)
             ),
             text=[node + f" ({category})"],

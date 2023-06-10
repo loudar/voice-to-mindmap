@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 
 
 def create_mind_map_force(proximity_links):
@@ -25,13 +26,33 @@ def create_mind_map_force(proximity_links):
     # Generate positions for each subgraph using spring_layout
     all_positions = {}
     for subgraph in subgraphs:
-        positions = nx.shell_layout(subgraph)
+        positions = nx.shell_layout(subgraph, scale=0.5)
         for node in subgraph.nodes:
             all_positions[node] = positions[node]
 
     all_positions = nx.spring_layout(G, pos=all_positions, iterations=50)
 
+    # Call move_subgraphs function to adjust positions
+    all_positions = move_subgraphs(G, all_positions)
+
     return G, all_positions
+
+
+def move_subgraphs(G, all_positions):
+    # Find the subgraphs with the largest number of nodes
+    largest_subgraphs = max(nx.connected_components(G), key=len)
+
+    # Calculate the center position
+    center = np.mean(np.array(list(all_positions.values())), axis=0)
+
+    # Move the larger subgraphs closer to the center position
+    for node in largest_subgraphs:
+        pos = all_positions[node]
+        direction = center - pos
+        new_pos = pos + direction * 0.1  # Adjust the scaling factor (0.1) as desired
+        all_positions[node] = new_pos
+
+    return all_positions
 
 
 def add_nodes_and_edges(G, proximity_links):
