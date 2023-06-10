@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import nltk as nltk
 import spacy
+import numpy as np
 try:
     import babelnet as bn
 except RuntimeError as e_babelnet:
@@ -304,7 +305,7 @@ def add_nodes_and_edges(G, proximity_links):
         G.add_edge(source, target, weight=weight)
 
 
-def create_mind_map(proximity_links):
+def create_mind_map(proximity_links, min_distance=10):
     G = nx.Graph()
 
     # Add nodes and edges to the graph
@@ -322,12 +323,53 @@ def create_mind_map(proximity_links):
             subgraphs[category].add_node(node)
 
     # Generate positions for each subgraph
-    pos = {}
-    for i, (category, subgraph) in enumerate(subgraphs.items()):
-        subgraph_positions = nx.spring_layout(subgraph, center=(i*10, 0), scale=5.0)
-        pos.update(subgraph_positions)
+    subgraph_positions = {}
 
-    return G, pos
+    for i, (category, subgraph) in enumerate(subgraphs.items()):
+        # Use spring layout to position nodes within each subgraph
+        positions = nx.spring_layout(subgraph, scale=1.0)
+        # Adjust positions so that subgraphs are separated
+        for pos in positions.values():
+            pos[0] += i * 10
+        subgraph_positions.update(positions)
+
+    # Ensure minimum distance within each category
+    for category, subgraph in subgraphs.items():
+        nodes = list(subgraph.nodes())
+        for i in range(len(nodes)):
+            for j in range(i + 1, len(nodes)):
+                pos1 = np.array(subgraph_positions[nodes[i]])
+                pos2 = np.array(subgraph_positions[nodes[j]])
+                # Calculate distance
+                distance = np.linalg.norm(pos1 - pos2)
+                if distance < min_distance:
+                    # Calculate direction vector
+                    direction = (pos2 - pos1) / distance
+                    # Move nodes apart
+                    shift = (min_distance - distance) / 2
+                    subgraph_positions[nodes[i]] -= direction * shift
+                    subgraph_positions[nodes[j]] += direction * shift
+
+    # Create a graph where each node is a subgraph
+    H = nx.Graph()
+    for category in subgraphs.keys():
+        H.add_node(category)
+
+    # Add an edge between two subgraphs if there's an edge between any two nodes from the subgraphs
+    for u, v, data in G.edges(data=True):
+        H.add_edge(G.nodes[u]['category'], G.nodes[v]['category'])
+
+    # Use spring layout to position subgraphs
+    graph_positions = nx.spring_layout(H, scale=10.0)
+
+    # Adjust positions of nodes based on the positions of their subgraphs
+    for node, data in G.nodes(data=True):
+        category = data['category']
+        # Move node towards the position of its subgraph
+        subgraph_positions[node] += graph_positions[category]
+
+    return G, subgraph_positions
+
 
 def main():
     with open(source_file, 'r', encoding='windows-1252') as f:
