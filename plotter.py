@@ -78,22 +78,22 @@ def create_plot(G, subgraph_positions):
             hoverinfo='text',
             marker=dict(
                 showscale=False,
-                color=[color],
+                color=f"rgb{color}",
                 size=10,
                 line=dict(width=2)
             ),
-            text=[node]
+            text=[node + f" ({category})"],
         )
 
         edge_traces.append(node_trace)
 
     go_fig = go.Figure(data=edge_traces,
                        layout=go.Layout(
-                           title='Network graph made with Python',
+                           title='Generated Mind Map',
                            titlefont=dict(size=16),
                            showlegend=False,
                            hovermode='closest',
-                           margin=dict(b=20, l=5, r=5, t=40),
+                           margin=dict(b=0, l=0, r=0, t=40),
                            annotations=[dict(
                                xref="paper", yref="paper",
                                x=0.005, y=-0.002)],
