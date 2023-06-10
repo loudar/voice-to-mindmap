@@ -264,16 +264,6 @@ def create_mind_map(proximity_links, min_distance=10):
 def create_plot(G, subgraph_positions):
     # Create Plotly figure
     edge_traces = []
-    middle_node_trace = go.Scatter(
-        x=[],
-        y=[],
-        text=[],
-        mode='markers',
-        hoverinfo='text',
-        marker=go.Marker(
-            opacity=0
-        )
-    )
 
     for edge in G.edges(data=True):
         x0, y0 = subgraph_positions[edge[0]]
@@ -283,19 +273,11 @@ def create_plot(G, subgraph_positions):
         edge_trace = go.Scatter(
             x=[x0, (x0 + x1) / 2, x1, None],
             y=[y0, (y0 + y1) / 2, y1, None],
-            line=dict(width=weight, color='#888'),  # set line width to weight
-            hoverinfo='text',
-            hovertemplate=f"{edge[0]} - {edge[1]}<br>Weight: {weight}<extra></extra>",
-            text=[f"{edge[0]} - {edge[1]}"],
-            hovertext=[f"{edge[0]} - {edge[1]}"],
-            hoveron='fills'  # Set hover area to entire trace
+            line=dict(width=weight, color='#888'),
+            hoverinfo='none',
         )
 
         edge_traces.append(edge_trace)
-
-        middle_node_trace['x'].append((x0 + x1) / 2)
-        middle_node_trace['y'].append((y0 + y1) / 2)
-        middle_node_trace['text'].append(f"Weight: {weight}")
 
     node_trace = go.Scatter(
         x=[subgraph_positions[node][0] for node in G.nodes()],
