@@ -1,0 +1,10 @@
+Levenshtein~=0.21.0
+babelnet~=1.1.0
+networkx~=3.1
+numpy~=1.24.3
+plotly~=5.15.0
+spacy~=3.5.3
+nltk~=3.8.1
+keyboard~=0.13.5
+matplotlib~=3.7.1
+PyAudio~=0.2.13
