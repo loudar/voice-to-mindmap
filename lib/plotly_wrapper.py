@@ -50,14 +50,15 @@ def create_plot(G, subgraph_positions, live_mode=False):
             node_trace = go.Scatter(
                 x=[subgraph_positions[node][0]],
                 y=[subgraph_positions[node][1]],
-                mode='markers',
-                hoverinfo='text',
+                mode='markers+text',
                 marker=dict(
                     showscale=False,
                     color=f"rgb{color}",
                     size=size * 50,  # Adjust the scaling factor as per your preference
                     line=dict(width=2)
                 ),
+                textfont=dict(color='black', size=8),
+                textposition="middle right",
                 text=[node + f" ({category})"],
             )
 
