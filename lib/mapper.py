@@ -48,14 +48,21 @@ def create_mind_map_force(proximity_links):
             positions = positions.reshape((num_nodes, 2))
             dist_matrix = distance_matrix(positions, positions)
 
-            # Calculate repulsion force, avoiding division by zero
-            repulsion = np.sum(np.divide(1, np.where(dist_matrix != 0, dist_matrix, 1)))
+            # Define minimum distance
+            min_dist = 5.0
+
+            # Increase repulsion force for nodes closer than min_dist
+            repulsion = np.sum(np.divide(1, np.where(dist_matrix > min_dist, dist_matrix, min_dist)))
 
             # Calculate attraction force, excluding division by zero
             dist_matrix_nonzero = np.where(dist_matrix != 0, dist_matrix, 1e-10)
             attraction = np.sum(np.divide(weight_matrix, dist_matrix_nonzero))
 
-            return repulsion - attraction
+            # Calculate central force, which is proportional to the total weight of incident edges
+            center = np.mean(positions, axis=0)
+            central_force = np.sum(np.linalg.norm(positions - center, axis=1) * np.sum(weight_matrix, axis=1))
+
+            return repulsion - attraction + central_force
 
         # Perform optimization to minimize the objective function
         result = minimize(objective, init_positions.flatten())
@@ -63,7 +70,10 @@ def create_mind_map_force(proximity_links):
         # Update positions with optimized values
         positions = result.x.reshape((num_nodes, 2))
 
-        # Scale positions to fit the mind map
+        # Scale positions based on the inverse of their weight to position higher weight nodes closer to the center
+        positions = positions / np.array([G.nodes[node]['size'] for node in nodes]).reshape(-1, 1)
+
+        # Adjust positions to fit the mind map
         positions = positions * 10.0 + category_positions[category]
 
         # Create a dictionary of positions for the subgraph
