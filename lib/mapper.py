@@ -7,25 +7,29 @@ def create_mind_map_force(proximity_links):
     # Add nodes and edges to the graph
     add_nodes_and_edges_force(G, proximity_links)
 
-    # Dictionary to hold subgraphs for each node
-    subgraphs = {}
+    # List to hold subgraphs for nodes with the threshold condition
+    subgraphs = []
 
-    # Create subgraphs for each node connected to nodes without any other connections
+    # Define the threshold for connected nodes
+    threshold = 2
+
+    # Create subgraphs for nodes with the threshold or more connected nodes
     for node in G.nodes:
         connected_nodes = set(G.neighbors(node))
-        unconnected_nodes = set(G.nodes) - connected_nodes - {node}
 
-        # Check if the node has connections only to unconnected nodes
-        if len(connected_nodes) > 0 and len(unconnected_nodes) == 0:
+        # Check if the node meets the threshold condition
+        if len(connected_nodes) >= threshold:
             subgraph = G.subgraph(connected_nodes).copy()
-            subgraphs[node] = subgraph
+            subgraphs.append(subgraph)
 
     # Generate positions for each subgraph using spring_layout
     all_positions = {}
-    for node, subgraph in subgraphs.items():
-        positions = nx.spring_layout(subgraph)
-        subgraph_positions = {n: pos for n, pos in positions.items()}
-        all_positions.update(subgraph_positions)
+    for subgraph in subgraphs:
+        positions = nx.shell_layout(subgraph)
+        for node in subgraph.nodes:
+            all_positions[node] = positions[node]
+
+    all_positions = nx.spring_layout(G, pos=all_positions, iterations=50)
 
     return G, all_positions
 
