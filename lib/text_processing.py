@@ -1,7 +1,7 @@
 import sys
 import spacy
 
-from lib.babel import get_word_category
+from lib.word_categorization import get_word_category_wordnet
 
 models = {
     'en': 'en_core_web_sm',
@@ -39,8 +39,8 @@ def extract_logical_links(text, selected_lang):
             logical_links.append({
                 'source': subjects[i][0],
                 'target': subjects[i + 1][0],
-                'source_category': get_word_category(subjects[i][0], selected_lang),
-                'target_category': get_word_category(subjects[i + 1][0], selected_lang),
+                'source_category': get_word_category_wordnet(subjects[i][0], selected_lang),
+                'target_category': get_word_category_wordnet(subjects[i + 1][0], selected_lang),
             })
 
     # calculate a weight for each link based on the count of the same link

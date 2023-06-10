@@ -13,6 +13,7 @@ levenshtein = "*"
 plotly = "*"
 scipy = "*"
 keyboard = "*"
+dash = "*"
 
 [dev-packages]
 
