@@ -12,6 +12,7 @@ nltk = "*"
 levenshtein = "*"
 plotly = "*"
 scipy = "*"
+keyboard = "*"
 
 [dev-packages]
 

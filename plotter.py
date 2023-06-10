@@ -14,11 +14,6 @@ selected_lang = 'de'
 nltk.download('averaged_perceptron_tagger')
 nltk.download('wordnet')
 
-plot_folder = "maps/"
-plot_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
-plot_file = f"{plot_folder}mindmap_{plot_id}.svg"
-latest_plot_file = f"{plot_folder}mindmap_latest.svg"
-
 if len(sys.argv) > 1:
     source_file = sys.argv[1]
 else:

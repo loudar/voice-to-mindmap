@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "dc5bde3774842612553f3c604d5d56acd6691e2bb84a5e3346d7e38a8ab6652f"
+            "sha256": "3745ce2ab2dc654abb45aa03f9504dbddc5f5dabdea943ebaeab8d584e4d1f74"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -543,6 +543,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==1.2.0"
+        },
+        "keyboard": {
+            "hashes": [
+                "sha256:63ed83305955939ca5c9a73755e5cc43e8242263f5ad5fd3bb7e0b032f3d308b",
+                "sha256:8e9c2422f1217e0bd84489b9ecd361027cc78415828f4fe4f88dd4acd587947b"
+            ],
+            "index": "pypi",
+            "version": "==0.13.5"
         },
         "kiwisolver": {
             "hashes": [
