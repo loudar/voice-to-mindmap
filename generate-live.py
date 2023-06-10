@@ -1,3 +1,4 @@
+import logging
 import sys
 import threading
 import webbrowser
@@ -157,6 +158,8 @@ if not started:
     audio_thread = threading.Thread(target=voice_to_text, args=(text_queue, stop_event))
     print("Starting audio thread...")
     audio_thread.start()
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
 
 started = True
 
