@@ -246,42 +246,34 @@ def create_mind_map(proximity_links, min_distance=10):
         else:
             subgraphs[category].add_node(node)
 
+    # Generate positions for each category
+    category_positions = nx.circular_layout(list(subgraphs.keys()), scale=100.0)
+
+    # Dictionary to hold all positions
+    all_positions = {}
+
     # Generate positions for each subgraph
-    subgraph_positions = {}
-
-    for i, (category, subgraph) in enumerate(subgraphs.items()):
-        # Use spring layout to position nodes within each subgraph
-        positions = nx.spring_layout(subgraph, scale=1.0)
-        # Adjust positions so that subgraphs are separated
-        for pos in positions.values():
-            pos[0] += i * 10
-        subgraph_positions.update(positions)
-
-    # Ensure minimum distance within each category
     for category, subgraph in subgraphs.items():
-        nodes = list(subgraph.nodes())
-        for i in range(len(nodes)):
-            for j in range(i + 1, len(nodes)):
-                pos1 = np.array(subgraph_positions[nodes[i]])
-                pos2 = np.array(subgraph_positions[nodes[j]])
-                # Calculate distance
-                distance = np.linalg.norm(pos1 - pos2)
-                if distance < min_distance:
-                    # Calculate direction vector
-                    direction = (pos2 - pos1) / distance
-                    # Move nodes apart
-                    shift = (min_distance - distance) / 2
-                    subgraph_positions[nodes[i]] -= direction * shift
-                    subgraph_positions[nodes[j]] += direction * shift
+        # Use circular layout to position nodes within each subgraph
+        positions = nx.circular_layout(subgraph, scale=10.0, center=category_positions[category])
+        all_positions.update(positions)
 
-    return G, subgraph_positions
+    return G, all_positions
 
-
-import plotly.graph_objects as go
 
 def create_plot(G, subgraph_positions):
     # Create Plotly figure
     edge_traces = []
+    middle_node_trace = go.Scatter(
+        x=[],
+        y=[],
+        text=[],
+        mode='markers',
+        hoverinfo='text',
+        marker=go.Marker(
+            opacity=0
+        )
+    )
 
     for edge in G.edges(data=True):
         x0, y0 = subgraph_positions[edge[0]]
@@ -289,16 +281,21 @@ def create_plot(G, subgraph_positions):
         weight = edge[2]['weight'] if 'weight' in edge[2] else 1
 
         edge_trace = go.Scatter(
-            x=[x0, x1, None],
-            y=[y0, y1, None],
+            x=[x0, (x0 + x1) / 2, x1, None],
+            y=[y0, (y0 + y1) / 2, y1, None],
             line=dict(width=weight, color='#888'),  # set line width to weight
             hoverinfo='text',
             hovertemplate=f"{edge[0]} - {edge[1]}<br>Weight: {weight}<extra></extra>",
             text=[f"{edge[0]} - {edge[1]}"],
-            hovertext=[f"{edge[0]} - {edge[1]}"]
+            hovertext=[f"{edge[0]} - {edge[1]}"],
+            hoveron='fills'  # Set hover area to entire trace
         )
 
         edge_traces.append(edge_trace)
+
+        middle_node_trace['x'].append((x0 + x1) / 2)
+        middle_node_trace['y'].append((y0 + y1) / 2)
+        middle_node_trace['text'].append(f"Weight: {weight}")
 
     node_trace = go.Scatter(
         x=[subgraph_positions[node][0] for node in G.nodes()],
@@ -306,17 +303,9 @@ def create_plot(G, subgraph_positions):
         mode='markers',
         hoverinfo='text',
         marker=dict(
-            showscale=True,
-            colorscale='YlGnBu',
-            reversescale=True,
+            showscale=False,
             color=[],
             size=10,
-            colorbar=dict(
-                thickness=15,
-                title='Node Connections',
-                xanchor='left',
-                titleside='right'
-            ),
             line=dict(width=2)
         ),
         text=list(G.nodes())
