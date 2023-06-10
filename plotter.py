@@ -99,7 +99,8 @@ def create_plot(G, subgraph_positions):
                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
                        )
 
-    go_fig.show()
+    #go_fig.show()
+    go_fig.update()
 
 
 def main():

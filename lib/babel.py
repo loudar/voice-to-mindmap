@@ -6,17 +6,19 @@ try:
 except RuntimeError as e_babelnet:
     print("Babelnet API key is not valid at the moment.")
 
-def get_word_category(word, language='en'):
+def get_word_category(word, language='en', debug = False):
     if not word:
         return 'unknown'
 
     word_lower = word.lower()
     cached_category = get_cached_word_categories(word_lower, language)
     if cached_category != '__not_cached__':
-        print(f"Cached category for '{word}' is '{cached_category}'.")
+        if debug:
+            print(f"Cached category for '{word}' is '{cached_category}'.")
         return cached_category
     if cached_category != '__error__':
-        print(f"Querying category for '{word}' returned an error last time.")
+        if debug:
+            print(f"Querying category for '{word}' returned an error last time.")
         return 'unknown'
 
     # Query BabelNet
