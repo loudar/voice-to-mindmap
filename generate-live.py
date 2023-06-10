@@ -1,7 +1,6 @@
 import logging
 import sys
 import threading
-import webbrowser
 
 import speech_recognition as sr
 import os
