@@ -172,7 +172,7 @@ def get_word_category(word, language='en'):
     word_lower = word.lower()
     cached_category = get_cached_word_categories(word_lower, language)
     if cached_category != '__not_cached__':
-        print(f"Word category for '{word}' is cached as '{cached_category}'.")
+        print(f"Cached category for '{word}' is '{cached_category}'.")
         return cached_category
 
     # Query BabelNet
@@ -188,7 +188,8 @@ def get_word_category(word, language='en'):
     synsets = bn.get_synsets(word, from_langs=[babel_lang], to_langs=[babel_lang])
 
     if not synsets:
-        cache_word_categories(word, 'unknown', language)
+        print(f"No synsets found for '{word}'.")
+        cache_word_categories(word_lower, 'unknown', language)
         return 'unknown'
 
     word_category_map = {}
@@ -221,7 +222,8 @@ def get_word_category(word, language='en'):
             print(f"Word category for closest match '{min_word}' is '{closest}' (out of {word_category_map[min_word]}).")
             return closest
         else:
-            cache_word_categories(word, 'unknown', language)
+            print(f"No closest match found for '{word}' (in {word_keys}).")
+            cache_word_categories(word_lower, 'unknown', language)
             return 'unknown'
 
 
