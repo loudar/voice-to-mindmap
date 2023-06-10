@@ -9,7 +9,10 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import nltk as nltk
 import spacy
-import babelnet as bn
+try:
+    import babelnet as bn
+except RuntimeError as e_babelnet:
+    print("Babelnet API key is not valid at the moment.")
 
 languages = ['en', 'de']
 models = {
@@ -46,7 +49,7 @@ def update_plot(text):
     logical_links = extract_logical_links(text)
 
     # Create the mind map using the accumulated logical links
-    G = create_mind_map(logical_links)
+    G, pos = create_mind_map(logical_links)
 
     # Clear the current plot
     plt.clf()
@@ -59,16 +62,6 @@ def update_plot(text):
 
     # Determine the smaller dimension
     min_dimension = min(fig_width, fig_height)
-    ratio = fig_width / fig_height
-
-    # Scale and adjust node positions based on the scaling factor
-    planar = True
-    try:
-        pos = nx.spring_layout(G, center=(0, 0), weight='weight', scale=1.0, iterations=50)
-    except nx.NetworkXException as e:
-        print(f"Planar layout not possible. Switching to shell layout: {e}")
-        planar = False
-        pos = nx.shell_layout(G, scale=min_dimension)
 
     max_node_size = max([G.nodes[n]['size'] for n in G.nodes()])
 
@@ -90,15 +83,6 @@ def update_plot(text):
     for n in G.nodes():
         x, y = pos[n]
         node_size = G.nodes[n]['size'] * min_dimension * 0.02 / max_node_size
-
-        # if not planar:
-        #     ellipse_width = node_size * (1 / ratio)
-        #     ellipse_height = node_size
-        #     ellipse = Ellipse((x, y), width=ellipse_width, height=ellipse_height, color='green', alpha=0.3)
-        #     plt.gca().add_patch(ellipse)
-        # else:
-        #     circle = Ellipse((x, y), width=node_size, height=node_size, color='green', alpha=0.3)
-        #     plt.gca().add_patch(circle)
 
         # Get the category of the node
         category = G.nodes[n].get('category')
@@ -143,8 +127,8 @@ def update_plot(text):
     try:
         plt.savefig(plot_file, bbox_inches='tight', pad_inches=0.1)
         os.system(f"start {plot_file}")
-    except Exception as e:
-        print(f"Error saving plot: {e}")
+    except Exception as e_save:
+        print(f"Error saving plot: {e_save}")
 
 
 def extract_logical_links(text):
@@ -155,12 +139,17 @@ def extract_logical_links(text):
         subjects = []
         for token in sentence:
             if token.pos_ == 'NOUN' or token.dep_ == 'nsubj' or token.dep_ == 'nsubjpass':
-                subjects.append(token.text)
+                subjects.append((token.text, token.pos_))  # include the token's POS as the category
             elif token.pos_ == 'ADJ':
-                subjects.append(token.text)
+                subjects.append((token.text, token.pos_))  # include the token's POS as the category
 
         for i in range(len(subjects) - 1):
-            logical_links.append((subjects[i], subjects[i + 1]))
+            logical_links.append({
+                'source': subjects[i][0],
+                'target': subjects[i + 1][0],
+                'source_category': get_word_category(subjects[i][0], selected_lang),
+                'target_category': get_word_category(subjects[i + 1][0], selected_lang),
+            })
 
     return logical_links
 
@@ -174,6 +163,9 @@ def get_word_category(word, language='en'):
     if cached_category != '__not_cached__':
         print(f"Cached category for '{word}' is '{cached_category}'.")
         return cached_category
+    if cached_category != '__error__':
+        print(f"Querying category for '{word}' returned an error last time.")
+        return 'unknown'
 
     # Query BabelNet
     print(f"Querying BabelNet for '{word}'.")
@@ -185,46 +177,51 @@ def get_word_category(word, language='en'):
     else:
         Exception(f"Language {language} not supported.")
 
-    synsets = bn.get_synsets(word, from_langs=[babel_lang], to_langs=[babel_lang])
+    try:
+        synsets = bn.get_synsets(word, from_langs=[babel_lang], to_langs=[babel_lang])
 
-    if not synsets:
-        print(f"No synsets found for '{word}'.")
-        cache_word_categories(word_lower, 'unknown', language)
-        return 'unknown'
-
-    word_category_map = {}
-    for synset in synsets:
-        raw_categories = synset.categories(babel_lang)
-        string_categories = [category.category.lower() for category in raw_categories]
-        lemma_lower = synset.main_sense_preferably_in(babel_lang).full_lemma.lower()
-        if word_lower in string_categories:
-            string_categories.remove(word_lower)
-
-        if len(string_categories) == 0:
-            continue
-
-        word_category_map[lemma_lower] = string_categories
-
-    if word_lower in word_category_map:
-        closest = closest_match(word_lower, word_category_map[word_lower])
-        cache_word_categories(word_lower, closest, language)
-        print(f"Word category for '{word}' is '{closest}' (out of {word_category_map[word_lower]}).")
-        return closest
-    else:
-        word_keys = word_category_map.keys()
-        min_word = closest_match(word_lower, word_keys)
-
-        if min_word:
-            print(f"Word '{word}' not found in BabelNet. Closest match is '{min_word}' (out of {word_keys}).")
-            closest = closest_match(word_lower, word_category_map[min_word])
-            cache_word_categories(word_lower, closest, language)
-            cache_word_categories(min_word, closest, language)
-            print(f"Word category for closest match '{min_word}' is '{closest}' (out of {word_category_map[min_word]}).")
-            return closest
-        else:
-            print(f"No closest match found for '{word}' (in {word_keys}).")
+        if not synsets:
+            print(f"No synsets found for '{word}'.")
             cache_word_categories(word_lower, 'unknown', language)
             return 'unknown'
+
+        word_category_map = {}
+        for synset in synsets:
+            raw_categories = synset.categories(babel_lang)
+            string_categories = [category.category.lower() for category in raw_categories]
+            lemma_lower = synset.main_sense_preferably_in(babel_lang).full_lemma.lower()
+            if word_lower in string_categories:
+                string_categories.remove(word_lower)
+
+            if len(string_categories) == 0:
+                continue
+
+            word_category_map[lemma_lower] = string_categories
+
+        if word_lower in word_category_map:
+            closest = closest_match(word_lower, word_category_map[word_lower])
+            cache_word_categories(word_lower, closest, language)
+            print(f"Word category for '{word}' is '{closest}' (out of {word_category_map[word_lower]}).")
+            return closest
+        else:
+            word_keys = word_category_map.keys()
+            min_word = closest_match(word_lower, word_keys)
+
+            if min_word:
+                print(f"Word '{word}' not found in BabelNet. Closest match is '{min_word}' (out of {word_keys}).")
+                closest = closest_match(word_lower, word_category_map[min_word])
+                cache_word_categories(word_lower, closest, language)
+                cache_word_categories(min_word, closest, language)
+                print(f"Word category for closest match '{min_word}' is '{closest}' (out of {word_category_map[min_word]}).")
+                return closest
+            else:
+                print(f"No closest match found for '{word}' (in {word_keys}).")
+                cache_word_categories(word_lower, 'unknown', language)
+                return 'unknown'
+    except RuntimeError as e_babel:
+        print(f"Error querying BabelNet for '{word}': {e_babel}")
+        cache_word_categories(word_lower, '__error__', language)
+        return 'unknown'
 
 
 def closest_match(word, str_list):
@@ -277,63 +274,60 @@ def sort_nodes_by_weight(g):
     return sorted(g.nodes(), key=lambda node: g.nodes[node]['size'], reverse=True)
 
 
+def add_nodes_and_edges(G, proximity_links):
+    edge_weights = {}
+    node_categories = {}
+
+    # First, create all edges and their weights without adding them to the graph.
+    for link in proximity_links:
+        edge = (link['source'], link['target'])
+        if edge in edge_weights:
+            edge_weights[edge] += 1
+        else:
+            edge_weights[edge] = 1
+        node_categories[link['source']] = link['source_category']
+        node_categories[link['target']] = link['target_category']
+
+    # Then, sort edges by weight and select top 50 or fewer if total number is less than 50.
+    sorted_edges = sorted(edge_weights.items(), key=lambda item: item[1], reverse=True)
+    top_edges = sorted_edges[:50] if len(sorted_edges) > 50 else sorted_edges
+
+    # Now, add the top edges and their nodes to the graph.
+    for edge, weight in top_edges:
+        source, target = edge
+        if source not in G.nodes:
+            G.add_node(source, category=node_categories[source],
+                       size=len([e for e in edge_weights if e[0] == source or e[1] == source]))
+        if target not in G.nodes:
+            G.add_node(target, category=node_categories[target],
+                       size=len([e for e in edge_weights if e[0] == target or e[1] == target]))
+        G.add_edge(source, target, weight=weight)
+
+
 def create_mind_map(proximity_links):
     G = nx.Graph()
-    tempnodes = {}
-    tempedges = {}
 
-    for word1, word2 in proximity_links:
-        if word1 not in tempnodes:
-            tempnodes[word1] = 1
+    # Add nodes and edges to the graph
+    add_nodes_and_edges(G, proximity_links)
+
+    # Dictionary to hold subgraphs for each category
+    subgraphs = {}
+
+    # Create subgraphs for each category
+    for node, data in G.nodes(data=True):
+        category = data['category']
+        if category not in subgraphs:
+            subgraphs[category] = G.subgraph([node]).copy()
         else:
-            tempnodes[word1] += 1
+            subgraphs[category].add_node(node)
 
-        if word2 not in tempnodes:
-            tempnodes[word2] = 1
-        else:
-            tempnodes[word2] += 1
+    # Generate positions for each subgraph
+    pos = {}
+    for i, (category, subgraph) in enumerate(subgraphs.items()):
+        subgraph_positions = nx.spring_layout(subgraph, center=(i*10, 0), scale=5.0)
+        pos.update(subgraph_positions)
 
-        if word1 not in tempedges:
-            tempedges[word1] = {}
-
-        if word2 not in tempedges[word1]:
-            if word1 == word2:
-                continue
-            tempedges[word1][word2] = 1
-        else:
-            tempedges[word1][word2] += 1
-
-    # convert to list
-    temp_edges = []
-    for node in tempedges:
-        for edge in tempedges[node]:
-            temp_edges.append([node, edge, tempedges[node][edge]])
-
-    # sort and get top 100
-    sort_temp_edges = sorted(temp_edges, key=lambda x: x[2], reverse=True)
-    # top_10_percent_count = int(len(sort_temp_edges) * 0.1)
-    top_count = 50
-    top_list = sort_temp_edges[:top_count]
-
-    # convert back to dict
-    tempedges = {}
-    for edge in sort_temp_edges:
-        tempedges[edge[0]] = {}
-        tempedges[edge[0]][edge[1]] = edge[2]
-
-    for edge in top_list:
-        if edge[0] not in G.nodes():
-            G.add_node(edge[0], size=tempnodes[edge[0]], category=get_word_category(edge[0], selected_lang))
-
-        if edge[1] not in G.nodes():
-            G.add_node(edge[1], size=tempnodes[edge[1]], category=get_word_category(edge[1], selected_lang))
-
-        G.add_edge(edge[0], edge[1], weight=edge[2])
-
-    print(f"Added {len(G.nodes())} nodes and {len(G.edges())} edges to graph.")
-
-    return G
-
+    return G, pos
 
 def main():
     with open(source_file, 'r', encoding='windows-1252') as f:
