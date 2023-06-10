@@ -18,9 +18,9 @@ def voice_to_text(stop_event_ref):
             text = r.recognize_google(audio_source, language=google_lang[selected_lang])
             print(f"Recognized Text: {text}")
             with open(transcript_file, 'a') as file:
-                file.write(text)
+                file.write(text + " ")
             with open(latest_transcript_file, 'a') as file:
-                file.write(text)
+                file.write(text + " ")
         except sr.UnknownValueError:
             print("Speech recognition could not understand audio.")
         except sr.RequestError as e:

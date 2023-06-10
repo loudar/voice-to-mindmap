@@ -31,7 +31,7 @@ def voice_to_text(q, stop_event_ref):
     def recognize_audio(audio_source):
         try:
             text = r.recognize_google(audio_source, language=google_lang[selected_lang])
-            q.put(text)  # Put the recognized text in the queue
+            q.put(text + " ")  # Put the recognized text in the queue
             print(f"Recognized Text: {text}")
             update_plot(q)
         except sr.UnknownValueError:
@@ -64,7 +64,6 @@ def update_plot(q):
     while not q.empty():
         text = q.get()  # Get the latest recognized text
 
-        accumulated_text += text + " "
         with open(transcript_file, 'a') as file:
             file.write(text)
 

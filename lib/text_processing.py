@@ -1,6 +1,7 @@
 import sys
 import spacy
 
+from deepmultilingualpunctuation import PunctuationModel
 from lib.word_categorization import get_word_category_wordnet
 
 models = {
@@ -9,6 +10,7 @@ models = {
 }
 
 nlp = None
+model = PunctuationModel()
 
 
 def load_spacy_model_if_needed(selected_lang):
@@ -24,11 +26,13 @@ def load_spacy_model_if_needed(selected_lang):
 
 
 def extract_logical_links(text, selected_lang):
-    doc = load_spacy_model_if_needed(selected_lang)(text)
+    result = model.restore_punctuation(text)
+    doc = load_spacy_model_if_needed(selected_lang)(result)
     logical_links = []
-    enabled_pos = ['NOUN', 'ADJ', 'VERB']
+    enabled_pos = ['NOUN']
 
     for sentence in doc.sents:
+        print(f"Processing sentence: {sentence}")
         subjects = []
         for token in sentence:
             if 'NOUN' in enabled_pos and (token.pos_ == 'NOUN' or token.dep_ == 'nsubj' or token.dep_ == 'nsubjpass'):
