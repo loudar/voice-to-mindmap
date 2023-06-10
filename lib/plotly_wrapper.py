@@ -16,21 +16,24 @@ def create_plot(G, subgraph_positions, live_mode=False):
         max_degree = max(values)  # Calculate the maximum degree in the graph
 
     for edge in G.edges(data=True):
-        x0, y0 = subgraph_positions[edge[0]]
-        x1, y1 = subgraph_positions[edge[1]]
-        weight = edge[2]['weight'] if 'weight' in edge[2] else 1
+        try:
+            x0, y0 = subgraph_positions[edge[0]]
+            x1, y1 = subgraph_positions[edge[1]]
+            weight = edge[2]['weight'] if 'weight' in edge[2] else 1
 
-        edge_trace = go.Scatter(
-            x=[x0, (x0 + x1) / 2, x1, None],
-            y=[y0, (y0 + y1) / 2, y1, None],
-            line=dict(width=weight, color='#888'),
-            hoverinfo='text',
-            hovertext=f"{edge[0]} -> {edge[1]} ({weight})",
-            mode='lines',
-            showlegend=False,
-        )
+            edge_trace = go.Scatter(
+                x=[x0, (x0 + x1) / 2, x1, None],
+                y=[y0, (y0 + y1) / 2, y1, None],
+                line=dict(width=weight, color='#888'),
+                hoverinfo='text',
+                hovertext=f"{edge[0]} -> {edge[1]} ({weight})",
+                mode='lines',
+                showlegend=False,
+            )
 
-        edge_traces.append(edge_trace)
+            edge_traces.append(edge_trace)
+        except KeyError:
+            continue
 
     for node in G.nodes():
         category = G.nodes[node].get('category', 'default')  # Get the category property
