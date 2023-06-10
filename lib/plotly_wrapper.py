@@ -1,14 +1,18 @@
 import plotly.graph_objects as go
 from lib.colors import generate_unique_color
 
-def create_plot(G, subgraph_positions, update=False):
+def create_plot(G, subgraph_positions, live_mode=False):
     print("Creating plot...")
     # Create Plotly figure
     edge_traces = []
 
     category_colors = {}  # Dictionary to store unique colors per category
 
-    max_degree = max(dict(G.degree()).values())  # Calculate the maximum degree in the graph
+    values = dict(G.degree()).values()
+    if len(values) == 0:
+        max_degree = 0
+    else:
+        max_degree = max(values)  # Calculate the maximum degree in the graph
 
     for edge in G.edges(data=True):
         x0, y0 = subgraph_positions[edge[0]]
@@ -68,7 +72,7 @@ def create_plot(G, subgraph_positions, update=False):
                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
                        )
 
-    if update:
-        go_fig.update()
+    if live_mode:
+        return go_fig
     else:
         go_fig.show()

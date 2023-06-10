@@ -30,6 +30,9 @@ def create_mind_map_force(proximity_links):
         for node in subgraph.nodes:
             all_positions[node] = positions[node]
 
+    if len(all_positions) == 0:
+        return G, all_positions
+
     all_positions = nx.spring_layout(G, pos=all_positions, iterations=50)
 
     # Call move_subgraphs function to adjust positions
