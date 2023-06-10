@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 from lib.colors import generate_unique_color
 
+
 def create_plot(G, subgraph_positions, live_mode=False):
     print("Creating plot...")
     # Create Plotly figure
@@ -42,21 +43,24 @@ def create_plot(G, subgraph_positions, live_mode=False):
         else:
             color = category_colors[category]
 
-        node_trace = go.Scatter(
-            x=[subgraph_positions[node][0]],
-            y=[subgraph_positions[node][1]],
-            mode='markers',
-            hoverinfo='text',
-            marker=dict(
-                showscale=False,
-                color=f"rgb{color}",
-                size=size * 50,  # Adjust the scaling factor as per your preference
-                line=dict(width=2)
-            ),
-            text=[node + f" ({category})"],
-        )
+        try:
+            node_trace = go.Scatter(
+                x=[subgraph_positions[node][0]],
+                y=[subgraph_positions[node][1]],
+                mode='markers',
+                hoverinfo='text',
+                marker=dict(
+                    showscale=False,
+                    color=f"rgb{color}",
+                    size=size * 50,  # Adjust the scaling factor as per your preference
+                    line=dict(width=2)
+                ),
+                text=[node + f" ({category})"],
+            )
 
-        edge_traces.append(node_trace)
+            edge_traces.append(node_trace)
+        except KeyError:
+            continue
 
     go_fig = go.Figure(data=edge_traces,
                        layout=go.Layout(

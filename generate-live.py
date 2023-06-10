@@ -1,5 +1,7 @@
 import sys
 import threading
+import webbrowser
+
 import speech_recognition as sr
 import os
 import queue
@@ -27,14 +29,13 @@ app.layout = html.Div([
 def voice_to_text(q, stop_event_ref):
     # Function to handle speech recognition
     def recognize_audio(audio_source):
-        print("Recognizing audio...")
         try:
             text = r.recognize_google(audio_source, language=google_lang[selected_lang])
             q.put(text)  # Put the recognized text in the queue
             print(f"Recognized Text: {text}")
             update_plot(q)
         except sr.UnknownValueError:
-            print("Speech recognition could not understand audio.")
+            print("could not understand audio.", end="")
         except sr.RequestError as e:
             print("Could not request results from Google Speech Recognition service; {0}".format(e))
         except Exception as e:
@@ -44,18 +45,16 @@ def voice_to_text(q, stop_event_ref):
     # Record audio continuously until stop event is set
     with sr.Microphone(device_index=0) as source:
         while not stop_event_ref.is_set():
-            print("Recording audio...")
+            print("Recording audio...", end="")
             try:
                 audio = r.listen(source, phrase_time_limit=5)
-                print("Audio recording complete.")
             except sr.WaitTimeoutError:
-                print("No speech detected. Trying again...")
+                print("no speech detected. Trying again...")
                 continue
 
             # Create a new thread for speech recognition
             recognition_thread = threading.Thread(target=recognize_audio, args=(audio,))
             recognition_thread.start()
-            print("Started recognition thread")
 
 
 def update_plot(q):
@@ -162,4 +161,5 @@ if not started:
 started = True
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    os.system("start http://127.0.0.1:7080")
+    app.run_server(host='127.0.0.1', port='7080', proxy=None, debug=False, dev_tools_ui=None)
