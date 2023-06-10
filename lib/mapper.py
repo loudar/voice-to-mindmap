@@ -12,25 +12,37 @@ def create_mind_map_force(proximity_links):
     # Dictionary to hold subgraphs for each category
     subgraphs = {}
 
-    # Create subgraphs for each category
-    for node, data in G.nodes(data=True):
-        category = data['category']
+    # Calculate degree centrality for each node
+    degree_centrality = nx.degree_centrality(G)
+
+    # Sort nodes by degree centrality in descending order
+    sorted_nodes = sorted(G.nodes(), key=lambda node: degree_centrality[node], reverse=True)
+
+    # Create subgraph for highly connected nodes
+    highly_connected_nodes = sorted_nodes[:5]  # Adjust the number as desired
+    highly_connected_subgraph = G.subgraph(highly_connected_nodes).copy()
+    subgraphs['highly_connected'] = highly_connected_subgraph
+
+    # Create subgraphs for low connected nodes
+    low_connected_nodes = sorted_nodes[5:]  # Adjust the number as desired
+    for node in low_connected_nodes:
+        category = G.nodes[node]['category']
         if category not in subgraphs:
             subgraphs[category] = G.subgraph([node]).copy()
         else:
             subgraphs[category].add_node(node)
 
-    # Generate positions for each category
-    category_positions = nx.circular_layout(list(subgraphs.keys()), scale=100.0)
+    # Generate positions for highly connected nodes
+    highly_connected_positions = nx.circular_layout(highly_connected_subgraph)
 
     # Dictionary to hold all positions
     all_positions = {}
 
-    # Generate positions for each subgraph using force-directed layout
-    i = 0
+    # Generate positions for low connected nodes using force-directed layout
+    category_index = 0
     for category, subgraph in subgraphs.items():
-        i += 1
-        print(f"Generating positions for category '{category}' ({i}/{len(subgraphs.items())})")
+        category_index += 1
+        print(f"Generating positions for category '{category}' ({str(category_index)}/{len(subgraphs.items())})")
         num_nodes = subgraph.number_of_nodes()
 
         # Create initial random positions for nodes within each subgraph
@@ -74,13 +86,19 @@ def create_mind_map_force(proximity_links):
         positions = positions / np.array([G.nodes[node]['size'] for node in nodes]).reshape(-1, 1)
 
         # Adjust positions to fit the mind map
-        positions = positions * 10.0 + category_positions[category]
+        positions = positions * 10.0
+
+        # If low connected nodes, arrange them around their corresponding highly connected node center
+        if category != 'highly_connected':
+            center = highly_connected_positions[category]
+            positions = positions + center
 
         # Create a dictionary of positions for the subgraph
         subgraph_positions = {node: tuple(position) for node, position in zip(subgraph.nodes, positions)}
         all_positions.update(subgraph_positions)
 
     return G, all_positions
+
 
 
 def add_nodes_and_edges_force(G, proximity_links):
