@@ -2,11 +2,8 @@ import json
 import math
 import os
 import sys
-import time
 from datetime import datetime
-
 import Levenshtein as Levenshtein
-from matplotlib.patches import Ellipse
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -21,7 +18,12 @@ models = {
 }
 selected_lang = 'de'
 
-nlp = spacy.load(models[selected_lang])
+try:
+    nlp = spacy.load(models[selected_lang])
+except OSError as e:
+    print(f"Error loading model: {e} \nPlease run 'python -m spacy download {models[selected_lang]}'")
+    sys.exit(1)
+
 nltk.download('averaged_perceptron_tagger')
 nltk.download('wordnet')
 
