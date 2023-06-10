@@ -277,22 +277,28 @@ def create_mind_map(proximity_links, min_distance=10):
     return G, subgraph_positions
 
 
+import plotly.graph_objects as go
+
 def create_plot(G, subgraph_positions):
     # Create Plotly figure
-    edge_trace = go.Scatter(
-        x=[],
-        y=[],
-        line=dict(width=0.5, color='#888'),
-        hoverinfo='none',
-        mode='lines')
+    edge_traces = []
 
-    pos = nx.spring_layout(G)
+    for edge in G.edges(data=True):
+        x0, y0 = subgraph_positions[edge[0]]
+        x1, y1 = subgraph_positions[edge[1]]
+        weight = edge[2]['weight'] if 'weight' in edge[2] else 1
 
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_trace['x'] += tuple([x0, x1, None])
-        edge_trace['y'] += tuple([y0, y1, None])
+        edge_trace = go.Scatter(
+            x=[x0, x1, None],
+            y=[y0, y1, None],
+            line=dict(width=weight, color='#888'),  # set line width to weight
+            hoverinfo='text',
+            hovertemplate=f"{edge[0]} - {edge[1]}<br>Weight: {weight}<extra></extra>",
+            text=[f"{edge[0]} - {edge[1]}"],
+            hovertext=[f"{edge[0]} - {edge[1]}"]
+        )
+
+        edge_traces.append(edge_trace)
 
     node_trace = go.Scatter(
         x=[subgraph_positions[node][0] for node in G.nodes()],
@@ -316,7 +322,7 @@ def create_plot(G, subgraph_positions):
         text=list(G.nodes())
     )
 
-    go_fig = go.Figure(data=[edge_trace, node_trace],
+    go_fig = go.Figure(data=edge_traces + [node_trace],
                        layout=go.Layout(
                            title='Network graph made with Python',
                            titlefont=dict(size=16),
