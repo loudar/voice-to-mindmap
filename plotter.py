@@ -10,6 +10,8 @@ import networkx as nx
 import nltk as nltk
 import spacy
 import numpy as np
+import plotly.graph_objects as go
+
 try:
     import babelnet as bn
 except RuntimeError as e_babelnet:
@@ -50,86 +52,8 @@ def update_plot(text):
     logical_links = extract_logical_links(text)
 
     # Create the mind map using the accumulated logical links
-    G, pos = create_mind_map(logical_links)
-
-    # Clear the current plot
-    plt.clf()
-
-    # Set background color
-    plt.gca().set_facecolor('white')
-
-    # Calculate scaling factor based on the current figure size
-    fig_width, fig_height = plt.gcf().get_size_inches()
-
-    # Determine the smaller dimension
-    min_dimension = min(fig_width, fig_height)
-
-    max_node_size = max([G.nodes[n]['size'] for n in G.nodes()])
-
-    # Create a color mapping dictionary for categories
-    categories = set()
-    for node in G.nodes():
-        category = G.nodes[node].get('category')
-        if category:
-            categories.add(category)
-
-    print(f"Categories: {categories}")
-    color_mapping = {}
-    color_palette = cm.get_cmap('rainbow', len(categories))
-
-    for i, category in enumerate(categories):
-        color_mapping[category] = color_palette(i)
-
-    # Draw nodes with labels and circles
-    for n in G.nodes():
-        x, y = pos[n]
-        node_size = G.nodes[n]['size'] * min_dimension * 0.02 / max_node_size
-
-        # Get the category of the node
-        category = G.nodes[n].get('category')
-
-        # Set the color of the node label based on the category
-        label_color = 'black'
-        if category:
-            label_color = color_mapping[category]
-
-        # Draw the node label with the specified color
-        font_size = 8 + G.nodes[n]['size'] * 0.5
-        plt.text(x, y, n, color=label_color, ha='center', va='center', fontsize=font_size)
-
-    # Draw edges
-    edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
-    margin = 10
-    nx.draw_networkx_edges(G, pos, width=edge_widths, edge_color='blue', arrows=True, arrowstyle='-|>', arrowsize=12,
-                           min_source_margin=margin, min_target_margin=margin)
-
-    # Adjust plot limits
-    plt.axis('off')
-
-    # Update the plot size
-    size_factor = len(G.nodes()) / 10
-    dpi = 100
-    pixel_x = math.floor(fig_width * size_factor * dpi)
-    pixel_y = int(fig_height * size_factor * dpi)
-    max_pixels = 2000
-    if pixel_x > max_pixels or pixel_y > max_pixels:
-        print(f"Plot size exceeds maximum of 5000 x 5000 px. Scaling down.")
-        reduction_factor = max_pixels / max(pixel_x, pixel_y)
-        size_factor *= reduction_factor
-    elif pixel_x < 500 or pixel_y < 500:
-        print(f"Plot size is too small. Scaling up.")
-        reduction_factor = 1500 / min(pixel_x, pixel_y)
-        size_factor *= reduction_factor
-    plt.gcf().set_size_inches(fig_width * size_factor, fig_height * size_factor)
-
-    # Refresh the plot
-    plt.draw()
-    print(f"Saving plot to: {plot_file}")
-    try:
-        plt.savefig(plot_file, bbox_inches='tight', pad_inches=0.1)
-        os.system(f"start {plot_file}")
-    except Exception as e_save:
-        print(f"Error saving plot: {e_save}")
+    G, subgraph_positions = create_mind_map(logical_links)
+    create_plot(G, subgraph_positions)
 
 
 def extract_logical_links(text):
@@ -213,7 +137,8 @@ def get_word_category(word, language='en'):
                 closest = closest_match(word_lower, word_category_map[min_word])
                 cache_word_categories(word_lower, closest, language)
                 cache_word_categories(min_word, closest, language)
-                print(f"Word category for closest match '{min_word}' is '{closest}' (out of {word_category_map[min_word]}).")
+                print(
+                    f"Word category for closest match '{min_word}' is '{closest}' (out of {word_category_map[min_word]}).")
                 return closest
             else:
                 print(f"No closest match found for '{word}' (in {word_keys}).")
@@ -270,6 +195,7 @@ def create_word_cache(language):
             f.write("{}")
 
     return filename
+
 
 def sort_nodes_by_weight(g):
     return sorted(g.nodes(), key=lambda node: g.nodes[node]['size'], reverse=True)
@@ -350,25 +276,64 @@ def create_mind_map(proximity_links, min_distance=10):
                     subgraph_positions[nodes[i]] -= direction * shift
                     subgraph_positions[nodes[j]] += direction * shift
 
-    # Create a graph where each node is a subgraph
-    H = nx.Graph()
-    for category in subgraphs.keys():
-        H.add_node(category)
-
-    # Add an edge between two subgraphs if there's an edge between any two nodes from the subgraphs
-    for u, v, data in G.edges(data=True):
-        H.add_edge(G.nodes[u]['category'], G.nodes[v]['category'])
-
-    # Use spring layout to position subgraphs
-    graph_positions = nx.spring_layout(H, scale=10.0)
-
-    # Adjust positions of nodes based on the positions of their subgraphs
-    for node, data in G.nodes(data=True):
-        category = data['category']
-        # Move node towards the position of its subgraph
-        subgraph_positions[node] += graph_positions[category]
-
     return G, subgraph_positions
+
+
+def create_plot(G, subgraph_positions):
+    # Create Plotly figure
+    edge_trace = go.Scatter(
+        x=[],
+        y=[],
+        line=dict(width=0.5, color='#888'),
+        hoverinfo='none',
+        mode='lines')
+
+    pos = nx.spring_layout(G)
+
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_trace['x'] += tuple([x0, x1, None])
+        edge_trace['y'] += tuple([y0, y1, None])
+
+    node_trace = go.Scatter(
+        x=[subgraph_positions[node][0] for node in G.nodes()],
+        y=[subgraph_positions[node][1] for node in G.nodes()],
+        mode='markers',
+        hoverinfo='text',
+        marker=dict(
+            showscale=True,
+            colorscale='YlGnBu',
+            reversescale=True,
+            color=[],
+            size=10,
+            colorbar=dict(
+                thickness=15,
+                title='Node Connections',
+                xanchor='left',
+                titleside='right'
+            ),
+            line=dict(width=2)
+        ),
+        text=list(G.nodes())
+    )
+
+    go_fig = go.Figure(data=[edge_trace, node_trace],
+                       layout=go.Layout(
+                           title='Network graph made with Python',
+                           titlefont=dict(size=16),
+                           showlegend=False,
+                           hovermode='closest',
+                           margin=dict(b=20, l=5, r=5, t=40),
+                           annotations=[dict(
+                               showarrow=False,
+                               xref="paper", yref="paper",
+                               x=0.005, y=-0.002)],
+                           xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                           yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                       )
+
+    go_fig.show()
 
 
 def main():
