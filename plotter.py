@@ -1,10 +1,8 @@
 import json
-import math
 import os
 import sys
 from datetime import datetime
 import Levenshtein as Levenshtein
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import networkx as nx
 import nltk as nltk
