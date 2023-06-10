@@ -36,7 +36,7 @@ def create_plot(G, subgraph_positions, live_mode=False):
             continue
 
     for node in G.nodes():
-        category = G.nodes[node].get('category', 'default')  # Get the category property
+        category = G.nodes[node].get('type', 'default')  # Get the category property
         size = G.degree[node] / max_degree  # Calculate relative node size based on the degree
 
         if category not in category_colors:

@@ -26,14 +26,17 @@ def load_spacy_model_if_needed(selected_lang):
 def extract_logical_links(text, selected_lang):
     doc = load_spacy_model_if_needed(selected_lang)(text)
     logical_links = []
+    enabled_pos = ['NOUN', 'ADJ', 'VERB']
 
     for sentence in doc.sents:
         subjects = []
         for token in sentence:
-            if token.pos_ == 'NOUN' or token.dep_ == 'nsubj' or token.dep_ == 'nsubjpass':
+            if 'NOUN' in enabled_pos and (token.pos_ == 'NOUN' or token.dep_ == 'nsubj' or token.dep_ == 'nsubjpass'):
                 subjects.append((token.text, token.pos_))  # include the token's POS as the category
-            elif token.pos_ == 'ADJ':
+            elif 'ADJ' in enabled_pos and token.pos_ == 'ADJ':
                 subjects.append((token.text, token.pos_))  # include the token's POS as the category
+            elif 'VERB' in enabled_pos and (token.pos_ == 'VERB' or token.dep_ == 'ROOT'):
+                subjects.append((token.text, token.pos_))
 
         for i in range(len(subjects) - 1):
             logical_links.append({
@@ -41,6 +44,8 @@ def extract_logical_links(text, selected_lang):
                 'target': subjects[i + 1][0],
                 'source_category': get_word_category_wordnet(subjects[i][0], selected_lang),
                 'target_category': get_word_category_wordnet(subjects[i + 1][0], selected_lang),
+                'source_type': subjects[i][1],
+                'target_type': subjects[i + 1][1],
             })
 
     # calculate a weight for each link based on the count of the same link

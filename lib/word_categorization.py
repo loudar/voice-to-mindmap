@@ -63,9 +63,9 @@ def get_word_category_wordnet(word, language='en', debug=False):
                 return CAT_CACHE_UNKNOWN
 
             lemmas = hypernyms[0].lemmas()
-            lemma = lemmas[0]
-            print(f"Exact match for {word} (hypernym: '{lemma}').")
-            return lemma
+            print(f"Exact match for {word} (hypernym: '{lemmas[0]}').")
+            cache_word_categories(word_lower, lemmas[0], language)
+            return lemmas[0]
 
         hypernyms = synset.hypernyms()
         if len(hypernyms) == 0:
