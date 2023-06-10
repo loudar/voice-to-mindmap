@@ -26,7 +26,7 @@ def get_word_category_wordnet(word, language='en', debug=False):
     if language not in language_map:
         raise ValueError(f"Language '{language}' is not supported.")
     else:
-        language = language_map[language]
+        wordnet_language = language_map[language]
         if debug:
             print(f"Language is '{language}'.")
 
@@ -39,9 +39,9 @@ def get_word_category_wordnet(word, language='en', debug=False):
         return cached_category
 
     # Query Wordnet
-    print(f"Querying wordnet({language}) for '{word}'.")
+    print(f"Querying wordnet({wordnet_language}) for '{word}'.")
     if net is None:
-        net = wn.Wordnet(language)
+        net = wn.Wordnet(wordnet_language)
     synsets = net.synsets(word)
 
     if len(synsets) == 0:
@@ -185,9 +185,15 @@ def cache_word_categories(word, category, language):
         }
 
     for key in data:
-        if 'cachetime' not in data[key]:
-            print(f"Adding cachetime to {key}.")
+        if data[key] is None:
+            data[key] = {}
+            data[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            data[key]['category'] = CAT_CACHE_UNKNOWN
+
+        if isinstance(data[key], str):
+            print(f"Converting cache for {key}...")
             temp_category = data[key]
+            data[key] = {}
             data[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             data[key]['category'] = temp_category
 
