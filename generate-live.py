@@ -70,6 +70,7 @@ def update_plot(q):
     # Check if new text is available in the queue
     while not q.empty():
         text = q.get()  # Get the latest recognized text
+        accumulated_text += text
 
         with open(transcript_file, 'a') as file:
             file.write(text)
@@ -86,7 +87,7 @@ def update_graph_scatter(n):
     if accumulated_text != previous_accumulated_text:
         print("Updating plot...")
         # Extract logical links from the new text
-        logical_links = extract_logical_links_advanced(accumulated_text, selected_lang)
+        logical_links = extract_logical_links_advanced(accumulated_text, selected_lang, True)
 
         # Create the mind map using the accumulated logical links
         G, subgraph_positions = create_mind_map_force(logical_links)

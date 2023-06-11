@@ -19,20 +19,27 @@ punctuation_model = PunctuationModel()
 nltk.download('stopwords')
 
 
-def extract_logical_links_advanced(text, selected_lang, pair_count=50):
+def extract_logical_links_advanced(text, selected_lang, live_mode=False, pair_count=50):
     logical_links = []
     result = punctuation_model.restore_punctuation(text)
     texts = preprocess_text(result, selected_lang)
     cooccurrence = calculate_cooccurrence(texts, window_size=5)
 
+    max_count = max(cooccurrence.values())
     for pair, count in sorted(cooccurrence.items(), key=lambda x: -x[1])[:min(pair_count, len(cooccurrence))]:
-        relative_weight = count / len(texts)
-        weight = relative_weight * 100
+        relative_weight = count / max_count
+        weight = 1 + 4 * relative_weight
+        if not live_mode:
+            source_category = get_word_category_wordnet(list(pair)[0], selected_lang)
+            target_category = get_word_category_wordnet(list(pair)[1], selected_lang)
+        else:
+            source_category = None
+            target_category = None
         logical_links.append({
             'source': list(pair)[0],
             'target': list(pair)[1],
-            'source_category': get_word_category_wordnet(list(pair)[0], selected_lang),
-            'target_category': get_word_category_wordnet(list(pair)[1], selected_lang),
+            'source_category': source_category,
+            'target_category': target_category,
             'weight': weight
         })
 

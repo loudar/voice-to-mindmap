@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 from datetime import datetime
 
 import Levenshtein as Levenshtein
@@ -42,7 +43,15 @@ def get_word_category_wordnet(word, language='en', debug=False):
     print(f"Querying wordnet({wordnet_language}) for '{word}'.")
     if net is None:
         net = wn.Wordnet(wordnet_language)
-    synsets = net.synsets(word)
+    try:
+        synsets = net.synsets(word)
+    except sqlite3.ProgrammingError as e:
+        if 'SQLite objects created in a thread can only be used in that same thread' in str(e):
+            print("Recreating Wordnet object.")
+            net = wn.Wordnet(wordnet_language)
+            synsets = net.synsets(word)
+        else:
+            raise e
 
     if len(synsets) == 0:
         # maybe add translation here to account for bilingual text
