@@ -84,8 +84,8 @@ def update_graph_scatter(n):
     global accumulated_text, previous_accumulated_text
 
     # Only update plot if accumulated_text has changed
-    if accumulated_text != previous_accumulated_text:
-        print("Updating plot...")
+    if accumulated_text != previous_accumulated_text and accumulated_text != "":
+        print(f"Updating plot... ({len(accumulated_text)} characters - {n} intervals)")
         # Extract logical links from the new text
         logical_links = extract_logical_links_advanced(accumulated_text, selected_lang, True)
 
@@ -96,7 +96,7 @@ def update_graph_scatter(n):
         # Update the previous_accumulated_text to the current accumulated_text
         previous_accumulated_text = accumulated_text
 
-        print("Plot updated!")
+        print(f"Plot updated: ({len(accumulated_text)} characters - {n} intervals)")
         return figure
     else:
         # If no new text has been added, return the existing figure

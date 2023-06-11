@@ -19,6 +19,25 @@ net = None
 
 
 def get_word_category_wordnet(word, language='en', debug=False):
+    if not word:
+        return CAT_CACHE_UNKNOWN
+
+    word_lower = word.lower()
+    cached_category = check_for_cached_word_categories(word_lower, language, debug)
+    if cached_category is not None:
+        return cached_category
+
+    try:
+        return get_word_category_wordnet_internal(word, language, debug)
+    except sqlite3.ProgrammingError as e:
+        if 'SQLite objects created in a thread can only be used in that same thread' in str(e):
+            # Strange error I don't know how to fix
+            return CAT_CACHE_UNKNOWN
+        else:
+            raise e
+
+
+def get_word_category_wordnet_internal(word, language='en', debug=False):
     global net
     language_map = {
         'en': 'oewn:2022',
@@ -31,28 +50,17 @@ def get_word_category_wordnet(word, language='en', debug=False):
         if debug:
             print(f"Language is '{language}'.")
 
-    if not word:
-        return CAT_CACHE_UNKNOWN
-
     word_lower = word.lower()
-    cached_category = check_for_cached_word_categories(word_lower, language, debug)
-    if cached_category is not None:
-        return cached_category
-
     # Query Wordnet
-    print(f"Querying wordnet({wordnet_language}) for '{word}'.")
     if net is None:
         net = wn.Wordnet(wordnet_language)
     try:
         synsets = net.synsets(word)
     except sqlite3.ProgrammingError as e:
-        if 'SQLite objects created in a thread can only be used in that same thread' in str(e):
-            print("Recreating Wordnet object.")
-            net = wn.Wordnet(wordnet_language)
-            synsets = net.synsets(word)
-        else:
-            raise e
+        # Strange error I don't know how to fix
+        raise e
 
+    print(f"Querying wordnet({wordnet_language}) for '{word}'.")
     if len(synsets) == 0:
         # maybe add translation here to account for bilingual text
         if debug:

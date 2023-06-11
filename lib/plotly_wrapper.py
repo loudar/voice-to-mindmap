@@ -46,6 +46,7 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True):
         else:
             color = category_colors[category]
 
+        node_text = node if not live_mode else node + f" ({category})"
         try:
             node_trace = go.Scatter(
                 x=[subgraph_positions[node][0]],
@@ -57,11 +58,11 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True):
                     size=size * 50,  # Adjust the scaling factor as per your preference
                     line=dict(width=2)
                 ),
+                text=[node_text],
+                hovertext=[node_text],
                 textfont=dict(color='black', size=10),
-                hovertext=[node + f" ({category})"],
                 hoverinfo='text',
                 textposition="middle right",
-                text=[node + f" ({category})"],
             )
 
             edge_traces.append(node_trace)
