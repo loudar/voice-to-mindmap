@@ -26,14 +26,15 @@ def generate_unique_color(existing_colors):
 
         return furthest_color
 
-    def is_contrast_sufficient(color):
+    def is_contrast_sufficient(color_param):
         # Check if the generated color has sufficient contrast against white
-        return abs(color[0] - 255) >= 64 or abs(color[1] - 255) >= 64 or abs(color[2] - 255) >= 64
+        return abs(color_param[0] - 255) >= 64 or abs(color_param[1] - 255) >= 64 or abs(color_param[2] - 255) >= 64
 
     # Find the color in existing_colors that is furthest from the generated hue
     furthest_color = find_furthest_color(hue)
 
     # Loop until a color with sufficient contrast is generated
+    max_tries = 100
     while True:
         # Set saturation to a random value between 40 and 100 (to avoid very pale colors)
         saturation = random.randint(40, 100)
@@ -46,7 +47,7 @@ def generate_unique_color(existing_colors):
         color = tuple(int(component * 255) for component in rgb)
 
         # Ensure good contrast against white
-        if is_contrast_sufficient(color):
+        if is_contrast_sufficient(color) or max_tries == 0:
             return color
 
         # Adjust the generated hue based on the furthest color
@@ -54,3 +55,5 @@ def generate_unique_color(existing_colors):
         hue_shift = 30 + random.randint(0, 30)
         hue_shift *= -1 if hue_difference < 180 else 1
         hue = (hue + hue_shift) % 360
+
+        max_tries -= 1

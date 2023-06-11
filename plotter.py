@@ -22,8 +22,8 @@ def update_plot(text):
     logical_links = extract_logical_links_advanced(text, selected_lang)
 
     # Create the mind map using the accumulated logical links
-    G, subgraph_positions = create_mind_map_force(logical_links)
-    create_plot(G, subgraph_positions)
+    G, positions = create_mind_map_force(logical_links)
+    create_plot(G, positions)
 
 
 def main():

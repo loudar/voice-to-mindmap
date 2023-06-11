@@ -25,12 +25,10 @@ app.layout = html.Div([
         value=['show']
     ),
     dcc.Graph(id='live-graph', animate=True, style={'height': '100vh'}),
-    dcc.Interval(
-        id='graph-update',
-        interval=1*1000,  # in milliseconds
-        n_intervals=0
-    ),
 ])
+
+global processing_flag
+processing_flag = False
 
 
 def voice_to_text(q, stop_event_ref):
@@ -75,28 +73,31 @@ def update_plot(q):
         with open(transcript_file, 'a') as file:
             file.write(text)
 
+        app.callback(Output('graph-update', 'n_intervals'))(lambda x: x + 1)
+
 
 @app.callback(
     Output('live-graph', 'figure'),
-    [Input('graph-update', 'n_intervals')]
+    [Input('graph-update', 'n_intervals')],
 )
 def update_graph_scatter(n):
-    global accumulated_text, previous_accumulated_text
+    global accumulated_text, previous_accumulated_text, processing_flag
 
     # Only update plot if accumulated_text has changed
-    if accumulated_text != previous_accumulated_text and accumulated_text != "":
+    if accumulated_text != previous_accumulated_text and accumulated_text != "" and not processing_flag:
+        processing_flag = True
+        # Update the previous_accumulated_text to the current accumulated_text
+        previous_accumulated_text = accumulated_text
         print(f"Updating plot... ({len(accumulated_text)} characters - {n} intervals)")
         # Extract logical links from the new text
         logical_links = extract_logical_links_advanced(accumulated_text, selected_lang, True)
 
         # Create the mind map using the accumulated logical links
-        G, subgraph_positions = create_mind_map_force(logical_links)
-        figure = create_plot(G, subgraph_positions, True)
-
-        # Update the previous_accumulated_text to the current accumulated_text
-        previous_accumulated_text = accumulated_text
+        G, positions = create_mind_map_force(logical_links)
+        figure = create_plot(G, positions, True, title=f"Transcript: {conversation_id} ({len(accumulated_text)} characters - {n} intervals)")
 
         print(f"Plot updated: ({len(accumulated_text)} characters - {n} intervals)")
+        processing_flag = False
         return figure
     else:
         # If no new text has been added, return the existing figure

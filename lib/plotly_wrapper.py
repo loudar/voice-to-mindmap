@@ -2,7 +2,7 @@ import plotly.graph_objects as go
 from lib.colors import generate_unique_color
 
 
-def create_plot(G, subgraph_positions, live_mode=False, show_labels=True):
+def create_plot(G, subgraph_positions, live_mode=False, show_labels=True, title="Mind Map"):
     print("Creating plot...")
     # Create Plotly figure
     edge_traces = []
@@ -32,6 +32,7 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True):
 
             edge_traces.append(edge_trace)
         except KeyError:
+            print(f"Edge {edge} not found in subgraph_positions")
             continue
 
     node_mode = 'markers+text' if show_labels else 'markers'
@@ -46,7 +47,7 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True):
         else:
             color = category_colors[category]
 
-        node_text = node if not live_mode else node + f" ({category})"
+        node_text = node if live_mode else node + f" ({category})"
         try:
             node_trace = go.Scatter(
                 x=[subgraph_positions[node][0]],
@@ -67,11 +68,12 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True):
 
             edge_traces.append(node_trace)
         except KeyError:
+            print(f"Node {node} not found in subgraph_positions")
             continue
 
     go_fig = go.Figure(data=edge_traces,
                        layout=go.Layout(
-                           title='Generated Mind Map',
+                           title=title,
                            titlefont=dict(size=16),
                            showlegend=False,
                            hovermode='closest',

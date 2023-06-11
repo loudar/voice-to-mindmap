@@ -19,30 +19,35 @@ punctuation_model = PunctuationModel()
 nltk.download('stopwords')
 
 
-def extract_logical_links_advanced(text, selected_lang, live_mode=False, pair_count=50):
+def extract_logical_links_advanced(text, selected_lang, live_mode=False):
     logical_links = []
     result = punctuation_model.restore_punctuation(text)
     texts = preprocess_text(result, selected_lang)
     cooccurrence = calculate_cooccurrence(texts, window_size=5)
 
     max_count = max(cooccurrence.values())
-    for pair, count in sorted(cooccurrence.items(), key=lambda x: -x[1])[:min(pair_count, len(cooccurrence))]:
+    for pair, count in sorted(cooccurrence.items(), key=lambda x: -x[1])[:len(cooccurrence)]:
+        pair_list = list(pair)
+        first_word = pair_list[0]
+        second_word = pair_list[1]
+
         relative_weight = count / max_count
-        weight = 1 + 4 * relative_weight
+        weight = 4.5 * relative_weight + 0.5
         if not live_mode:
-            source_category = get_word_category_wordnet(list(pair)[0], selected_lang)
-            target_category = get_word_category_wordnet(list(pair)[1], selected_lang)
+            source_category = get_word_category_wordnet(first_word, selected_lang)
+            target_category = get_word_category_wordnet(second_word, selected_lang)
         else:
             source_category = None
             target_category = None
         logical_links.append({
-            'source': list(pair)[0],
-            'target': list(pair)[1],
+            'source': first_word,
+            'target': second_word,
             'source_category': source_category,
             'target_category': target_category,
             'weight': weight
         })
 
+    print(f"Extracted {len(logical_links)} logical links")
     return logical_links
 
 
@@ -52,7 +57,8 @@ def calculate_cooccurrence(tokens, window_size):
         window_start = max(0, i - window_size)
         window = tokens[window_start: i + window_size + 1]
         for pair in itertools.combinations(window, 2):
-            cooccurrence[frozenset(pair)] += 1
+            if pair[0] != pair[1]:
+                cooccurrence[frozenset(pair)] += 1
     return cooccurrence
 
 

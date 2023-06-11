@@ -31,6 +31,7 @@ def create_mind_map_force(proximity_links):
             all_positions[node] = positions[node]
 
     if len(all_positions) == 0:
+        print("No nodes found with the threshold condition.")
         return G, all_positions
 
     all_positions = nx.spring_layout(G, pos=all_positions, iterations=50)
