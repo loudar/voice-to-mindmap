@@ -43,9 +43,6 @@ def voice_to_text(stop_event_ref):
             recognition_thread = threading.Thread(target=recognize_audio, args=(audio,))
             recognition_thread.start()
 
-            # Join the speech recognition thread with the main thread
-            recognition_thread.join()
-
 
 languages = ['en', 'de']
 google_lang = {
