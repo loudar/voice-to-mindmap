@@ -61,7 +61,6 @@ def move_subgraphs(G, all_positions):
 def add_nodes_and_edges(G, proximity_links):
     edge_weights = {}
     node_categories = {}
-    node_types = {}
 
     # First, create all edges and their weights without adding them to the graph.
     for link in proximity_links:
@@ -73,8 +72,6 @@ def add_nodes_and_edges(G, proximity_links):
 
         node_categories[link['source']] = link['source_category']
         node_categories[link['target']] = link['target_category']
-        node_types[link['source']] = link['source_type']
-        node_types[link['target']] = link['target_type']
 
     # Then, sort edges by weight and select top 50 or fewer if the total number is less than 50.
     sorted_edges = sorted(edge_weights.items(), key=lambda item: item[1], reverse=True)
@@ -84,9 +81,9 @@ def add_nodes_and_edges(G, proximity_links):
     for edge, weight in top_edges:
         source, target = edge
         if source not in G.nodes:
-            G.add_node(source, category=node_categories[source], type=node_types[source],
+            G.add_node(source, category=node_categories[source],
                        size=len([e for e in edge_weights if e[0] == source or e[1] == source]))
         if target not in G.nodes:
-            G.add_node(target, category=node_categories[target], type=node_types[source],
+            G.add_node(target, category=node_categories[target],
                        size=len([e for e in edge_weights if e[0] == target or e[1] == target]))
         G.add_edge(source, target, weight=weight)
