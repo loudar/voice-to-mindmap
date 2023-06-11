@@ -20,11 +20,12 @@ class BackgroundProcessor:
         while True:
             task = self.queue.get()
             if task is not None:
+                print(f"Task {task[3]} - Processing...")
                 text, selected_lang, conversation_id, n = task
                 logical_links = extract_logical_links_advanced(text, selected_lang, True)
                 G, positions = create_mind_map_force(logical_links)
-                self.data = create_plot(G, positions, True, title=f"Transcript: {conversation_id} ({len(text)} characters - {n} intervals)")
-            time.sleep(1)  # to prevent busy looping
+                self.data = create_plot(G, positions, True, title=f"Transcript: {conversation_id} ({len(text)} characters - task {n})")
+            time.sleep(.1)  # to prevent busy looping
 
     def get_data(self):
         return self.data

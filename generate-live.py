@@ -8,9 +8,7 @@ import queue
 import keyboard
 from datetime import datetime
 
-from lib.advanced_text_processing import extract_logical_links_advanced
-from lib.mapper import create_mind_map_force
-from lib.plotly_wrapper import create_plot
+from lib.classes.background_processor import BackgroundProcessor
 from dash.dependencies import Input, Output
 from dash import Dash, dash, html, dcc
 
@@ -25,55 +23,55 @@ app.layout = html.Div([
         value=['show']
     ),
     dcc.Graph(id='live-graph', animate=True, style={'height': '100vh'}),
+    dcc.Interval(
+        id='graph-update',
+        interval=1 * 1000,  # in milliseconds
+        n_intervals=0
+    )
 ])
 
-global processing_flag
 processing_flag = False
+recorded_segments = 0
+processor = BackgroundProcessor()
 
 
 def voice_to_text(q, stop_event_ref):
-    # Function to handle speech recognition
     def recognize_audio(audio_source):
+        global recorded_segments
         try:
             text = r.recognize_google(audio_source, language=google_lang[selected_lang])
-            q.put(text + " ")  # Put the recognized text in the queue
-            print(f"Recognized Text: {text}")
-            update_plot(q)
+            q.put(text + " ")
+            print(f"Task {recorded_segments} - Recognized Text: {text}")
+            recorded_segments += 1
+            update_plot(q, recorded_segments)
         except sr.UnknownValueError:
-            print("could not understand audio.", end="")
+            print("couldn't understand audio.", end="")
         except sr.RequestError as e:
             print("Could not request results from Google Speech Recognition service; {0}".format(e))
         except Exception as e:
             print(e)
-        return
 
-    # Record audio continuously until stop event is set
     with sr.Microphone(device_index=0) as source:
         while not stop_event_ref.is_set():
-            print("Recording audio...", end="")
+            print("Recording...", end="")
             try:
                 audio = r.listen(source, phrase_time_limit=5)
             except sr.WaitTimeoutError:
                 print("no speech detected. Trying again...")
                 continue
 
-            # Create a new thread for speech recognition
             recognition_thread = threading.Thread(target=recognize_audio, args=(audio,))
             recognition_thread.start()
 
 
-def update_plot(q):
+def update_plot(q, n):
     global accumulated_text
-
-    # Check if new text is available in the queue
     while not q.empty():
         text = q.get()  # Get the latest recognized text
         accumulated_text += text
-
         with open(transcript_file, 'a') as file:
             file.write(text)
-
-        app.callback(Output('graph-update', 'n_intervals'))(lambda x: x + 1)
+        processor.add_task((accumulated_text, selected_lang, conversation_id, n))
 
 
 @app.callback(
@@ -82,26 +80,20 @@ def update_plot(q):
 )
 def update_graph_scatter(n):
     global accumulated_text, previous_accumulated_text, processing_flag
-
-    # Only update plot if accumulated_text has changed
     if accumulated_text != previous_accumulated_text and accumulated_text != "" and not processing_flag:
         processing_flag = True
-        # Update the previous_accumulated_text to the current accumulated_text
         previous_accumulated_text = accumulated_text
-        print(f"Updating plot... ({len(accumulated_text)} characters - {n} intervals)")
-        # Extract logical links from the new text
-        logical_links = extract_logical_links_advanced(accumulated_text, selected_lang, True)
+        print(f"Task {recorded_segments} - Updating plot...")
 
-        # Create the mind map using the accumulated logical links
-        G, positions = create_mind_map_force(logical_links)
-        figure = create_plot(G, positions, True, title=f"Transcript: {conversation_id} ({len(accumulated_text)} characters - {n} intervals)")
+        figure = processor.get_data()  # Get the latest processed data
 
-        print(f"Plot updated: ({len(accumulated_text)} characters - {n} intervals)")
-        processing_flag = False
-        return figure
+        if figure is not None:
+            print(f"Task {recorded_segments} - Plot updated!")
+            processing_flag = False
+            return figure
     else:
-        # If no new text has been added, return the existing figure
         return dash.no_update
+
 
 started = False
 if not started:
