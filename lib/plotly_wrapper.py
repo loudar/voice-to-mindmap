@@ -2,7 +2,7 @@ import plotly.graph_objects as go
 from lib.colors import generate_unique_color
 
 
-def create_plot(G, subgraph_positions, live_mode=False):
+def create_plot(G, subgraph_positions, live_mode=False, show_labels=True):
     print("Creating plot...")
     # Create Plotly figure
     edge_traces = []
@@ -25,8 +25,7 @@ def create_plot(G, subgraph_positions, live_mode=False):
                 x=[x0, (x0 + x1) / 2, x1, None],
                 y=[y0, (y0 + y1) / 2, y1, None],
                 line=dict(width=weight, color='#888'),
-                hoverinfo='text',
-                hovertext=f"{edge[0]} -> {edge[1]} ({weight})",
+                hoverinfo='none',
                 mode='lines',
                 showlegend=False,
             )
@@ -35,6 +34,7 @@ def create_plot(G, subgraph_positions, live_mode=False):
         except KeyError:
             continue
 
+    node_mode = 'markers+text' if show_labels else 'markers'
     for node in G.nodes():
         category = G.nodes[node].get('category', 'default')  # Get the category property
         size = G.degree[node] / max_degree  # Calculate relative node size based on the degree
@@ -50,14 +50,16 @@ def create_plot(G, subgraph_positions, live_mode=False):
             node_trace = go.Scatter(
                 x=[subgraph_positions[node][0]],
                 y=[subgraph_positions[node][1]],
-                mode='markers+text',
+                mode=node_mode,
                 marker=dict(
                     showscale=False,
                     color=f"rgb{color}",
                     size=size * 50,  # Adjust the scaling factor as per your preference
                     line=dict(width=2)
                 ),
-                textfont=dict(color='black', size=8),
+                textfont=dict(color='black', size=10),
+                hovertext=[node + f" ({category})"],
+                hoverinfo='text',
                 textposition="middle right",
                 text=[node + f" ({category})"],
             )

@@ -8,15 +8,22 @@ import queue
 import keyboard
 from datetime import datetime
 
+from lib.advanced_text_processing import extract_logical_links_advanced
 from lib.mapper import create_mind_map_force
 from lib.plotly_wrapper import create_plot
-from lib.text_processing import extract_logical_links
 from dash.dependencies import Input, Output
 from dash import Dash, dash, html, dcc
 
 app = Dash(__name__)
 
 app.layout = html.Div([
+    dcc.Checklist(
+        id='show-labels',
+        options=[
+            {'label': 'Show Labels', 'value': 'show'}
+        ],
+        value=['show']
+    ),
     dcc.Graph(id='live-graph', animate=True, style={'height': '100vh'}),
     dcc.Interval(
         id='graph-update',
@@ -77,8 +84,9 @@ def update_graph_scatter(n):
 
     # Only update plot if accumulated_text has changed
     if accumulated_text != previous_accumulated_text:
+        print("Updating plot...")
         # Extract logical links from the new text
-        logical_links = extract_logical_links(accumulated_text, selected_lang)
+        logical_links = extract_logical_links_advanced(accumulated_text, selected_lang)
 
         # Create the mind map using the accumulated logical links
         G, subgraph_positions = create_mind_map_force(logical_links)
@@ -87,6 +95,7 @@ def update_graph_scatter(n):
         # Update the previous_accumulated_text to the current accumulated_text
         previous_accumulated_text = accumulated_text
 
+        print("Plot updated!")
         return figure
     else:
         # If no new text has been added, return the existing figure

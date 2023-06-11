@@ -4,7 +4,6 @@ import nltk as nltk
 from lib.advanced_text_processing import extract_logical_links_advanced
 from lib.mapper import create_mind_map_force
 from lib.plotly_wrapper import create_plot
-from lib.text_processing import extract_logical_links
 
 languages = ['en', 'de']
 selected_lang = 'de'
@@ -21,7 +20,6 @@ else:
 def update_plot(text):
     # Extract logical links from the new text
     logical_links = extract_logical_links_advanced(text, selected_lang)
-    #logical_links = extract_logical_links(text, selected_lang)
 
     # Create the mind map using the accumulated logical links
     G, subgraph_positions = create_mind_map_force(logical_links)

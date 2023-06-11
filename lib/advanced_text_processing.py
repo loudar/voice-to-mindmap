@@ -26,7 +26,6 @@ def extract_logical_links_advanced(text, selected_lang, pair_count=50):
     cooccurrence = calculate_cooccurrence(texts, window_size=5)
 
     for pair, count in sorted(cooccurrence.items(), key=lambda x: -x[1])[:min(pair_count, len(cooccurrence))]:
-        print(f"{list(pair)[0]} - {list(pair)[1]}: {count}")
         relative_weight = count / len(texts)
         weight = relative_weight * 100
         logical_links.append({

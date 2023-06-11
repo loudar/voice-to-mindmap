@@ -26,7 +26,7 @@ def create_mind_map_force(proximity_links):
     # Generate positions for each subgraph using spring_layout
     all_positions = {}
     for subgraph in subgraphs:
-        positions = nx.shell_layout(subgraph, scale=0.4)
+        positions = nx.shell_layout(subgraph, scale=0.3)
         for node in subgraph.nodes:
             all_positions[node] = positions[node]
 
