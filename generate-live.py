@@ -71,6 +71,8 @@ def update_plot(q, n):
         accumulated_text += text
         with open(transcript_file, 'a') as file:
             file.write(text)
+        with open(latest_transcript_file, 'a') as file:
+            file.write(text)
         processor.add_task((accumulated_text, selected_lang, conversation_id, n))
 
 
@@ -114,6 +116,7 @@ if not started:
     # use current timestamp as unique identifier for the transcript
     conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
     transcript_file = f"transcripts/transcript_{conversation_id}.txt"
+    latest_transcript_file = f"transcripts/transcript_latest.txt"
 
     # Create a queue to store the recognized text
     text_queue = queue.Queue()
@@ -144,6 +147,8 @@ if not started:
         print("Resetting...")
         conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
         transcript_file = f"transcripts/transcript_{conversation_id}.txt"
+        with open(latest_transcript_file, 'w') as file:
+            file.write("")
 
 
     # Register the stop key press callback

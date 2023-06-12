@@ -54,11 +54,14 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
 def calculate_cooccurrence(tokens, window_size):
     cooccurrence = defaultdict(int)
     for i in range(len(tokens)):
+        increment = 1
         window_start = max(0, i - window_size)
         window = tokens[window_start: i + window_size + 1]
         for pair in itertools.combinations(window, 2):
             if pair[0] != pair[1]:
-                cooccurrence[frozenset(pair)] += 1
+                if len(pair[0]) < 4 or len(pair[1]) < 4:
+                    increment = 0.5
+                cooccurrence[frozenset(pair)] += increment
     return cooccurrence
 
 
