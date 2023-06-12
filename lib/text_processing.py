@@ -4,7 +4,7 @@ import spacy
 from deepmultilingualpunctuation import PunctuationModel
 from lib.word_categorization import get_word_category_wordnet
 
-models = {
+spacy_models = {
     'en': 'en_core_web_sm',
     'de': 'de_core_news_sm'
 }
@@ -17,9 +17,9 @@ def load_spacy_model_if_needed(selected_lang):
     global nlp
     if nlp is None:
         try:
-            nlp = spacy.load(models[selected_lang])
+            nlp = spacy.load(spacy_models[selected_lang])
         except OSError as e:
-            print(f"Error loading model: {e} \nPlease run 'python -m spacy download {models[selected_lang]}'")
+            print(f"Error loading model: {e} \nPlease run 'python -m spacy download {spacy_models[selected_lang]}'")
             sys.exit(1)
 
     return nlp

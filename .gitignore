@@ -6,3 +6,4 @@ cache/*
 /maps/*
 *.idea
 babelnet_conf.yml
+/timings/*

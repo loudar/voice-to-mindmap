@@ -15,11 +15,13 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True, title=
     else:
         max_degree = max(values)  # Calculate the maximum degree in the graph
 
+    max_weight = [edge[2]['weight'] for edge in G.edges(data=True) if 'weight' in edge[2]]
     for edge in G.edges(data=True):
         try:
             x0, y0 = subgraph_positions[edge[0]]
             x1, y1 = subgraph_positions[edge[1]]
             weight = edge[2]['weight'] if 'weight' in edge[2] else 1
+            weight = weight / max(max_weight) * 5
 
             edge_trace = go.Scatter(
                 x=[x0, (x0 + x1) / 2, x1, None],

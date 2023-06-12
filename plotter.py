@@ -1,5 +1,6 @@
 import sys
 import nltk as nltk
+from deepmultilingualpunctuation import PunctuationModel
 
 from lib.advanced_text_processing import extract_logical_links_advanced
 from lib.classes.timer import Timer
@@ -18,15 +19,18 @@ else:
     source_file = "transcripts/transcript_latest.txt"
 
 
-def update_plot(text):
-    # Extract logical links from the new text
+def generate_plot(text):
+    punctuation_model = PunctuationModel()
     timer = Timer()
-    timer.start(str(len(text)) + "_logical_links")
+    timer.start("punctuation")
+    text = punctuation_model.restore_punctuation(text)
+    timer.stop()
+    timer.start("logical links")
     logical_links = extract_logical_links_advanced(text, selected_lang)
     timer.stop()
 
     # Create the mind map using the accumulated logical links
-    timer.start(str(len(text)) + "_mind_map")
+    timer.start("map")
     G, positions = create_mind_map_force(logical_links)
     timer.stop()
     create_plot(G, positions)
@@ -36,7 +40,7 @@ def main():
     with open(source_file, 'r', encoding='windows-1252') as f:
         text = f.read()
 
-    update_plot(text)
+    generate_plot(text)
 
 
 main()

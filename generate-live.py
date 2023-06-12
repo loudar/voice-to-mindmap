@@ -55,7 +55,7 @@ def voice_to_text(q, stop_event_ref):
         while not stop_event_ref.is_set():
             print("Recording...", end="")
             try:
-                audio = r.listen(source, phrase_time_limit=5)
+                audio = r.listen(source, phrase_time_limit=20)
             except sr.WaitTimeoutError:
                 print("no speech detected. Trying again...")
                 continue

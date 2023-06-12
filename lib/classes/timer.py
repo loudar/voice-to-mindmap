@@ -21,7 +21,7 @@ class Timer:
             self._save_timings_to_file()
 
     def _load_timings_from_file(self):
-        filename = f"timings_{self.version}.json"
+        filename = f"timings/timings_{self.version}.json"
         try:
             with open(filename, "r") as file:
                 return json.load(file)
@@ -29,6 +29,6 @@ class Timer:
             return {}
 
     def _save_timings_to_file(self):
-        filename = f"timings_{self.version}.json"
+        filename = f"timings/timings_{self.version}.json"
         with open(filename, "w") as file:
             json.dump(self.timings, file, indent=4)

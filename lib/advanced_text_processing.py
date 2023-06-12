@@ -15,26 +15,21 @@ stopwords_map = {
 }
 
 nlp = None
-punctuation_model = PunctuationModel()
 nltk.download('stopwords')
 
 
 def extract_logical_links_advanced(text, selected_lang, live_mode=False):
     logical_links = []
-    result = punctuation_model.restore_punctuation(text)
-    texts = preprocess_text(result, selected_lang)
+    texts = preprocess_text(text, selected_lang)
     cooccurrence = calculate_cooccurrence(texts, window_size=10)
 
     if len(cooccurrence) == 0:
         return logical_links
-    max_count = max(cooccurrence.values())
     for pair, count in sorted(cooccurrence.items(), key=lambda x: -x[1])[:len(cooccurrence)]:
         pair_list = list(pair)
         first_word = pair_list[0]
         second_word = pair_list[1]
 
-        relative_weight = count / max_count
-        weight = 4.5 * relative_weight + 0.5
         if not live_mode:
             source_category = get_word_category_wordnet(first_word, selected_lang)
             target_category = get_word_category_wordnet(second_word, selected_lang)
@@ -46,7 +41,7 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
             'target': second_word,
             'source_category': source_category,
             'target_category': target_category,
-            'weight': weight
+            'weight': count
         })
 
     print(f"Extracted {len(logical_links)} logical links")
@@ -95,3 +90,19 @@ def preprocess_text(text, selected_lang):
         tokens.extend(sentence_tokens)
 
     return tokens
+
+
+def get_preprocessed_sentences(text):
+    # Convert to lowercase
+    text = text.lower()
+
+    # Split into sentences
+    sentences = sent_tokenize(text)
+
+    for i in range(len(sentences)):
+        # Remove non-alphabetic characters
+        sentences[i] = re.sub(r'[^\w]', ' ', sentences[i])
+        # Remove words with 1 character
+        sentences[i] = re.sub(r'\b\w\b', '', sentences[i])
+
+    return sentences
