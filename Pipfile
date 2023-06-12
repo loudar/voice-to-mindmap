@@ -15,6 +15,7 @@ scipy = "*"
 keyboard = "*"
 dash = "*"
 deepmultilingualpunctuation = "*"
+gensim = "*"
 
 [dev-packages]
 
