@@ -25,6 +25,8 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
     texts = preprocess_text(result, selected_lang)
     cooccurrence = calculate_cooccurrence(texts, window_size=10)
 
+    if len(cooccurrence) == 0:
+        return logical_links
     max_count = max(cooccurrence.values())
     for pair, count in sorted(cooccurrence.items(), key=lambda x: -x[1])[:len(cooccurrence)]:
         pair_list = list(pair)
