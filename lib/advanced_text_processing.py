@@ -23,7 +23,7 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
     logical_links = []
     result = punctuation_model.restore_punctuation(text)
     texts = preprocess_text(result, selected_lang)
-    cooccurrence = calculate_cooccurrence(texts, window_size=5)
+    cooccurrence = calculate_cooccurrence(texts, window_size=10)
 
     max_count = max(cooccurrence.values())
     for pair, count in sorted(cooccurrence.items(), key=lambda x: -x[1])[:len(cooccurrence)]:
@@ -60,7 +60,7 @@ def calculate_cooccurrence(tokens, window_size):
         for pair in itertools.combinations(window, 2):
             if pair[0] != pair[1]:
                 if len(pair[0]) < 4 or len(pair[1]) < 4:
-                    increment = 0.5
+                    increment = 0.2
                 cooccurrence[frozenset(pair)] += increment
     return cooccurrence
 
