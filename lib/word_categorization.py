@@ -88,6 +88,7 @@ def get_word_category_wordnet_internal(word, language='en', debug=False):
         if len(hypernyms) == 0:
             if debug:
                 print(f"No hypernyms found for {word}.")
+                cache_word_categories(word_lower, CAT_CACHE_UNKNOWN, language)
             return CAT_CACHE_UNKNOWN
 
         hypernym = hypernyms[0]
