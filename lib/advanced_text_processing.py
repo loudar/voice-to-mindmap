@@ -56,7 +56,7 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
 
     chunk_size = 1000
     chunks = [list(cooccurrence.items())[i:i + chunk_size] for i in range(0, len(cooccurrence), chunk_size)]
-    print(f"Total chunks: {len(chunks)}")
+    print(f"Total link chunks: {len(chunks)}")
 
     q = Queue(maxsize=0)
     for chunk in chunks:
