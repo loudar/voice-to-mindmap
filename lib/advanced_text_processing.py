@@ -9,6 +9,8 @@ from collections import defaultdict
 import itertools
 
 from lib.word_categorization_wordnet import get_word_category_wordnet
+from queue import Queue
+from threading import Thread
 
 stopwords_map = {
     'en': stopwords.words('english'),
@@ -48,21 +50,49 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
     return logical_links
 
 
-def get_cooccurrence(text, selected_lang):
-    texts = preprocess_text(text, selected_lang)
+def get_core_count(text):
     available_cores = multiprocessing.cpu_count() - 4
     if available_cores < 1:
         available_cores = 1
-    desired_cores = max(int(len(texts) / 100000), 1)
-    used_cores = min(available_cores, desired_cores)
-    split_texts = [texts[i::used_cores] for i in range(used_cores)]
-    print(f"Using {used_cores} cores to calculate cooccurrence within {len(texts)} ({int(len(texts) / used_cores)} each core) tokens...")
-    cooccurrence = []
-    if __name__ == '__main__':
-        multiprocessing.freeze_support()
-        with multiprocessing.Pool(used_cores) as pool:
-            cooccurrence = pool.map(calculate_cooccurrence, [split_texts], chunksize=1)
-    return cooccurrence
+    desired_cores = max(int(len(text) / 10000), 1)
+    return min(available_cores, desired_cores)
+
+
+def worker(q, results):
+    while not q.empty():
+        work = q.get()
+        result = calculate_cooccurrence(work)
+        for k, v in result.items():
+            results[k] += v
+        q.task_done()
+
+
+def get_cooccurrence(text, selected_lang):
+    texts = preprocess_text(text, selected_lang)
+    parallelism = max(int(len(text) / 10000), 1)
+    split_texts = [texts[i::parallelism] for i in range(parallelism)]
+    print(f"Working with {parallelism} threads...")
+
+    q = Queue(maxsize=0)
+    for text_chunk in split_texts:
+        q.put(text_chunk)
+
+    results = defaultdict(int)
+    worker_threads = []
+    for i in range(parallelism):
+        worker_thread = Thread(target=worker, args=(q, results))
+        worker_thread.setDaemon(True)
+        worker_thread.start()
+        worker_threads.append(worker_thread)
+
+    # Wait for all threads to complete
+    for worker_thread in worker_threads:
+        worker_thread.join()
+
+    print("Waiting tasks to complete...")
+    q.join()
+
+    return results
 
 
 def calculate_cooccurrence(tokens, window_size=10):
