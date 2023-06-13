@@ -1,9 +1,15 @@
 import json
+import os
 import time
 
 
+def ensure_folder_exists(folder="timings"):
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+
+
 class Timer:
-    version = "v1"  # Static property for versioning
+    folder = "timings"
 
     def __init__(self):
         self.current_key = None
@@ -21,7 +27,8 @@ class Timer:
             self._save_timings_to_file()
 
     def _load_timings_from_file(self):
-        filename = f"timings/timings_{self.version}.json"
+        ensure_folder_exists(self.folder)
+        filename = f"{self.folder}/timings.json"
         try:
             with open(filename, "r") as file:
                 return json.load(file)
@@ -29,6 +36,7 @@ class Timer:
             return {}
 
     def _save_timings_to_file(self):
-        filename = f"timings/timings_{self.version}.json"
+        ensure_folder_exists(self.folder)
+        filename = f"{self.folder}/timings.json"
         with open(filename, "w") as file:
             json.dump(self.timings, file, indent=4)

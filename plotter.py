@@ -22,15 +22,9 @@ else:
 def generate_plot(text):
     punctuation_model = PunctuationModel()
     timer = Timer()
-    timer.start("punctuation")
+    timer.start(f"{len(text)}")
     text = punctuation_model.restore_punctuation(text)
-    timer.stop()
-    timer.start("logical links")
     logical_links = extract_logical_links_advanced(text, selected_lang)
-    timer.stop()
-
-    # Create the mind map using the accumulated logical links
-    timer.start("map")
     G, positions = create_mind_map_force(logical_links)
     timer.stop()
     create_plot(G, positions)
