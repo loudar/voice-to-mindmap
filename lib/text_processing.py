@@ -2,7 +2,7 @@ import sys
 import spacy
 
 from deepmultilingualpunctuation import PunctuationModel
-from lib.word_categorization import get_word_category_wordnet
+from lib.word_categorization_wordnet import get_word_category_wordnet
 
 spacy_models = {
     'en': 'en_core_web_sm',

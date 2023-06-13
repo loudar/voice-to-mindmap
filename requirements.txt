@@ -8,3 +8,7 @@ nltk~=3.8.1
 keyboard~=0.13.5
 matplotlib~=3.7.1
 PyAudio~=0.2.13
+deepmultilingualpunctuation~=1.0.1
+wn~=0.9.4
+scipy~=1.10.1
+dash~=2.10.2

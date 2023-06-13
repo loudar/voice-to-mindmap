@@ -1,13 +1,14 @@
+import multiprocessing
+
 import nltk
 
-from deepmultilingualpunctuation import PunctuationModel
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
 import re
 from collections import defaultdict
 import itertools
 
-from lib.word_categorization import get_word_category_wordnet
+from lib.word_categorization_wordnet import get_word_category_wordnet
 
 stopwords_map = {
     'en': stopwords.words('english'),
@@ -20,8 +21,7 @@ nltk.download('stopwords')
 
 def extract_logical_links_advanced(text, selected_lang, live_mode=False):
     logical_links = []
-    texts = preprocess_text(text, selected_lang)
-    cooccurrence = calculate_cooccurrence(texts, window_size=10)
+    cooccurrence = get_cooccurrence(text, selected_lang)
 
     if len(cooccurrence) == 0:
         return logical_links
@@ -48,7 +48,25 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
     return logical_links
 
 
-def calculate_cooccurrence(tokens, window_size):
+def get_cooccurrence(text, selected_lang):
+    texts = preprocess_text(text, selected_lang)
+    available_cores = multiprocessing.cpu_count() - 4
+    if available_cores < 1:
+        available_cores = 1
+    desired_cores = max(int(len(texts) / 100000), 1)
+    used_cores = min(available_cores, desired_cores)
+    split_texts = [texts[i::used_cores] for i in range(used_cores)]
+    print(f"Using {used_cores} cores to calculate cooccurrence within {len(texts)} ({int(len(texts) / used_cores)} each core) tokens...")
+    cooccurrence = []
+    if __name__ == '__main__':
+        multiprocessing.freeze_support()
+        with multiprocessing.Pool(used_cores) as pool:
+            cooccurrence = pool.map(calculate_cooccurrence, [split_texts], chunksize=1)
+    return cooccurrence
+
+
+def calculate_cooccurrence(tokens, window_size=10):
+    print(f"Received {len(tokens)} tokens...")
     cooccurrence = defaultdict(int)
     for i in range(len(tokens)):
         increment = 1
