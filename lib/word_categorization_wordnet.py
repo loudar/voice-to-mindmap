@@ -11,13 +11,18 @@ CAT_CACHE_ERROR = '__error__'
 CAT_CACHE_UNKNOWN = 'unknown'
 
 net = None
+word_category_cache = {}
 
 
-def get_word_category_wordnet(word, language='en', debug=False):
+def get_word_category_wordnet(word, language='en', debug=False, save_cache=False):
     if not word:
         return CAT_CACHE_UNKNOWN
 
     word_lower = word.lower()
+    if save_cache:
+        save_word_category_cache(language)
+
+    initialize_word_category_cache(language)
     cached_category = check_for_cached_word_categories(word_lower, language, debug)
     if cached_category is not None:
         return cached_category
@@ -120,50 +125,39 @@ def closest_match(word, str_list):
     return min_word
 
 
-def cache_word_categories(word, category, language):
-    filename = create_word_cache(language)
-    with open(filename, 'r') as f:
-        data = json.load(f)
-
-    if word not in data:
-        data[word] = {
+def cache_word_categories(word, category):
+    if word not in word_category_cache:
+        word_category_cache[word] = {
             'cachetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'category': category
         }
 
-    for key in data:
-        if data[key] is None:
-            data[key] = {}
-            data[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            data[key]['category'] = CAT_CACHE_UNKNOWN
+    for key in word_category_cache:
+        if word_category_cache[key] is None:
+            word_category_cache[key] = {}
+            word_category_cache[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            word_category_cache[key]['category'] = CAT_CACHE_UNKNOWN
 
-        if isinstance(data[key], str):
+        if isinstance(word_category_cache[key], str):
             print(f"Converting cache for {key}...")
-            temp_category = data[key]
-            data[key] = {}
-            data[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            data[key]['category'] = temp_category
-
-    with open(filename, 'w') as f:
-        json.dump(data, f)
+            temp_category = word_category_cache[key]
+            word_category_cache[key] = {}
+            word_category_cache[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            word_category_cache[key]['category'] = temp_category
 
 
-def get_cached_word_category(word, language):
-    filename = create_word_cache(language)
-    with open(filename, 'r') as f:
-        data = json.load(f)
-
-    if word in data:
-        if 'cachetime' in data[word]:
-            cachetime = datetime.strptime(data[word]['cachetime'], "%Y-%m-%d %H:%M:%S")
+def get_cached_word_category(word):
+    if word in word_category_cache:
+        if 'cachetime' in word_category_cache[word]:
+            cachetime = datetime.strptime(word_category_cache[word]['cachetime'], "%Y-%m-%d %H:%M:%S")
             if (datetime.now() - cachetime).total_seconds() > 60 * 60 * 24 * 30:
                 print(f"Cache for '{word}' is maybe outdated (last updated {cachetime}).")
                 return CAT_CACHE_NOT_CACHED
 
-        if 'category' in data[word]:
-            return data[word]['category']
+        if 'category' in word_category_cache[word]:
+            return word_category_cache[word]['category']
 
-        return data[word]
+        return word_category_cache[word]
     else:
         return CAT_CACHE_NOT_CACHED
 
@@ -178,3 +172,19 @@ def create_word_cache(language):
             f.write("{}")
 
     return filename
+
+
+def initialize_word_category_cache(language):
+    global word_category_cache
+    if word_category_cache is not None:
+        return
+    filename = create_word_cache(language)
+    with open(filename, 'r') as f:
+        word_category_cache = json.load(f)
+
+
+def save_word_category_cache(language):
+    global word_category_cache
+    filename = create_word_cache(language)
+    with open(filename, 'w') as f:
+        json.dump(word_category_cache, f)

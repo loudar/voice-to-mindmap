@@ -16,12 +16,13 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True, title=
         max_degree = max(values)  # Calculate the maximum degree in the graph
 
     max_weight = [edge[2]['weight'] for edge in G.edges(data=True) if 'weight' in edge[2]]
+    min_weight = min(max_weight) if len(max_weight) > .5 else .5
     for edge in G.edges(data=True):
         try:
             x0, y0 = subgraph_positions[edge[0]]
             x1, y1 = subgraph_positions[edge[1]]
             weight = edge[2]['weight'] if 'weight' in edge[2] else 1
-            weight = weight / max(max_weight) * 5
+            weight = (weight - min_weight) / max(max_weight) * 5
 
             edge_trace = go.Scatter(
                 x=[x0, (x0 + x1) / 2, x1, None],
@@ -41,6 +42,7 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True, title=
     for node in G.nodes():
         category = G.nodes[node].get('category', 'default')  # Get the category property
         size = G.degree[node] / max_degree  # Calculate relative node size based on the degree
+        size = max(size * 25, 1)
 
         if category not in category_colors:
             # Generate a unique color for the category with good contrast against white
@@ -58,10 +60,10 @@ def create_plot(G, subgraph_positions, live_mode=False, show_labels=True, title=
                 marker=dict(
                     showscale=False,
                     color=f"rgb{color}",
-                    size=size * 50,  # Adjust the scaling factor as per your preference
+                    size=size,
                     line=dict(width=2)
                 ),
-                text=[node_text],
+                text=[node],
                 hovertext=[node_text],
                 textfont=dict(color='black', size=10),
                 hoverinfo='text',
