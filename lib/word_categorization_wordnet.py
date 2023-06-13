@@ -195,6 +195,8 @@ def initialize_word_category_cache(language):
 def save_word_category_cache(language):
     global word_category_cache
     filename = create_word_cache(language)
+    if language not in word_category_cache:
+        word_category_cache[language] = {}
     temp_cache = word_category_cache[language]
     initialize_word_category_cache(language)
     word_category_cache[language].update(temp_cache)

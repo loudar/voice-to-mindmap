@@ -39,7 +39,7 @@ class BackgroundProcessor:
                 for i in range(len(sentences) - 1):
                     logical_links.extend(self.sentence_map[i])
 
-                print(f"Task {n} - Logical links: {logical_links}")
+                print(f"Task {n} - Logical links: {len(logical_links)}")
                 G, positions = create_mind_map_force(logical_links)
                 self.data = create_plot(G, positions, True, title=f"Transcript: {conversation_id} ({len(text)} characters - task {n})")
             time.sleep(.1)
