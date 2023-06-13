@@ -89,7 +89,7 @@ def get_cooccurrence(text, selected_lang):
     for worker_thread in worker_threads:
         worker_thread.join()
 
-    print("Waiting tasks to complete...")
+    print("Waiting for tasks to complete...")
     q.join()
 
     return results
