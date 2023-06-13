@@ -19,10 +19,10 @@ def get_word_category_wordnet(word, language='en', debug=False, save_cache=False
         return CAT_CACHE_UNKNOWN
 
     word_lower = word.lower()
+    initialize_word_category_cache(language)
     if save_cache:
         save_word_category_cache(language)
 
-    initialize_word_category_cache(language)
     cached_category = check_for_cached_word_categories(word_lower, language, debug)
     if cached_category is not None:
         return cached_category
@@ -60,13 +60,13 @@ def get_word_category_wordnet_internal(word, language='en', debug=False):
         # Strange error I don't know how to fix
         raise e
 
-
-    print(f"Querying wordnet({wordnet_language}) for '{word}'.")
+    if debug:
+        print(f"Querying wordnet({wordnet_language}) for '{word}'.")
     if len(synsets) == 0:
         # maybe add translation here to account for bilingual text
         if debug:
             print(f"No synsets found for '{word}'.")
-        cache_word_categories(word_lower, CAT_CACHE_UNKNOWN)
+        cache_word_categories(word_lower, CAT_CACHE_UNKNOWN, language)
         return CAT_CACHE_UNKNOWN
     else:
         synset = synsets[0]
@@ -77,30 +77,30 @@ def get_word_category_wordnet_internal(word, language='en', debug=False):
             if len(hypernyms) == 0:
                 if debug:
                     print(f"No hypernyms found for {word}.")
-                cache_word_categories(word_lower, CAT_CACHE_UNKNOWN)
+                cache_word_categories(word_lower, CAT_CACHE_UNKNOWN, language)
                 return CAT_CACHE_UNKNOWN
 
             lemmas = hypernyms[0].lemmas()
             print(f"Exact match for {word} (hypernym: '{lemmas[0]}').")
-            cache_word_categories(word_lower, lemmas[0])
+            cache_word_categories(word_lower, lemmas[0], language)
             return lemmas[0]
 
         hypernyms = synset.hypernyms()
         if len(hypernyms) == 0:
             if debug:
                 print(f"No hypernyms found for {word}.")
-            cache_word_categories(word_lower, CAT_CACHE_UNKNOWN)
+            cache_word_categories(word_lower, CAT_CACHE_UNKNOWN, language)
             return CAT_CACHE_UNKNOWN
 
         hypernym = hypernyms[0]
         lemmas = hypernym.lemmas()
         print(f"Closest match for {word} (hypernym: '{lemmas[0]}').")
-        cache_word_categories(word_lower, lemmas[0])
+        cache_word_categories(word_lower, lemmas[0], language)
         return lemmas[0]
 
 
 def check_for_cached_word_categories(word, language='en', debug=False):
-    cached_category = get_cached_word_category(word)
+    cached_category = get_cached_word_category(word, language)
     if cached_category != CAT_CACHE_NOT_CACHED and cached_category != CAT_CACHE_ERROR:
         if debug:
             print(f"Cached category for '{word}' is '{cached_category}'.")
@@ -125,39 +125,43 @@ def closest_match(word, str_list):
     return min_word
 
 
-def cache_word_categories(word, category):
-    if word not in word_category_cache:
-        word_category_cache[word] = {
+def cache_word_categories(word, category, language):
+    if word not in word_category_cache[language]:
+        word_category_cache[language][word] = {
             'cachetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'category': category
         }
 
-    for key in word_category_cache:
-        if word_category_cache[key] is None:
-            word_category_cache[key] = {}
-            word_category_cache[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            word_category_cache[key]['category'] = CAT_CACHE_UNKNOWN
+    for key in word_category_cache[language]:
+        if word_category_cache[language][key] is None:
+            new_item = {
+                'cachetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'category': CAT_CACHE_UNKNOWN
+            }
+            word_category_cache[language][key] = new_item
 
-        if isinstance(word_category_cache[key], str):
+        if isinstance(word_category_cache[language][key], str):
             print(f"Converting cache for {key}...")
-            temp_category = word_category_cache[key]
-            word_category_cache[key] = {}
-            word_category_cache[key]['cachetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            word_category_cache[key]['category'] = temp_category
+            temp_category = word_category_cache[language][key]
+            new_item = {
+                'cachetime': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'category': temp_category
+            }
+            word_category_cache[language][key] = new_item
 
 
-def get_cached_word_category(word):
-    if word in word_category_cache:
-        if 'cachetime' in word_category_cache[word]:
-            cachetime = datetime.strptime(word_category_cache[word]['cachetime'], "%Y-%m-%d %H:%M:%S")
+def get_cached_word_category(word, language):
+    if word in word_category_cache[language]:
+        if 'cachetime' in word_category_cache[language][word]:
+            cachetime = datetime.strptime(word_category_cache[language][word]['cachetime'], "%Y-%m-%d %H:%M:%S")
             if (datetime.now() - cachetime).total_seconds() > 60 * 60 * 24 * 30:
                 print(f"Cache for '{word}' is maybe outdated (last updated {cachetime}).")
                 return CAT_CACHE_NOT_CACHED
 
-        if 'category' in word_category_cache[word]:
-            return word_category_cache[word]['category']
+        if 'category' in word_category_cache[language][word]:
+            return word_category_cache[language][word]['category']
 
-        return word_category_cache[word]
+        return word_category_cache[language][word]
     else:
         return CAT_CACHE_NOT_CACHED
 
@@ -176,15 +180,22 @@ def create_word_cache(language):
 
 def initialize_word_category_cache(language):
     global word_category_cache
-    if word_category_cache is not None:
+    if language in word_category_cache:
         return
+
     filename = create_word_cache(language)
     with open(filename, 'r') as f:
-        word_category_cache = json.load(f)
+        if language not in word_category_cache:
+            word_category_cache[language] = {}
+        word_category_cache[language] = json.load(f)
 
 
 def save_word_category_cache(language):
     global word_category_cache
     filename = create_word_cache(language)
+    temp_cache = word_category_cache[language]
+    initialize_word_category_cache(language)
+    word_category_cache[language].update(temp_cache)
+    print(f"Saving cache to '{filename}'.")
     with open(filename, 'w') as f:
-        json.dump(word_category_cache, f)
+        json.dump(word_category_cache[language], f)
