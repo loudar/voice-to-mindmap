@@ -198,6 +198,8 @@ def save_word_category_cache(language):
     temp_cache = word_category_cache[language]
     initialize_word_category_cache(language)
     word_category_cache[language].update(temp_cache)
-    print(f"Saving cache to '{filename}'.")
     with open(filename, 'w') as f:
-        json.dump(word_category_cache[language], f)
+        try:
+            json.dump(word_category_cache[language], f)
+        except RuntimeError as e:
+            print(f"Error saving cache for {language}: {e}")

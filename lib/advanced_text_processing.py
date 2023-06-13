@@ -9,7 +9,7 @@ import re
 from collections import defaultdict
 import itertools
 
-from lib.word_categorization_wordnet import get_word_category_wordnet
+from lib.word_categorization_wordnet import get_word_category_wordnet, save_word_category_cache
 from queue import Queue
 from threading import Thread
 
@@ -31,11 +31,10 @@ def link_worker(q, results, selected_lang, live_mode):
             pair_list = list(pair)
             first_word = pair_list[0]
             second_word = pair_list[1]
-            save_cache = i == len(work)
 
             if not live_mode:
-                source_category = get_word_category_wordnet(first_word, selected_lang, save_cache=save_cache)
-                target_category = get_word_category_wordnet(second_word, selected_lang, save_cache=save_cache)
+                source_category = get_word_category_wordnet(first_word, selected_lang)
+                target_category = get_word_category_wordnet(second_word, selected_lang)
             else:
                 source_category = None
                 target_category = None
@@ -75,6 +74,7 @@ def extract_logical_links_advanced(text, selected_lang, live_mode=False):
         worker_thread.join()
 
     q.join()
+    save_word_category_cache(selected_lang)
     print(f"Extracted {len(results)} logical links")
     return results
 
