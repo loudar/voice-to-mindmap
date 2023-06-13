@@ -66,7 +66,7 @@ def get_word_category_wordnet_internal(word, language='en', debug=False):
         # maybe add translation here to account for bilingual text
         if debug:
             print(f"No synsets found for '{word}'.")
-        cache_word_categories(word_lower, CAT_CACHE_UNKNOWN, language)
+        cache_word_categories(word_lower, CAT_CACHE_UNKNOWN)
         return CAT_CACHE_UNKNOWN
     else:
         synset = synsets[0]
@@ -77,30 +77,30 @@ def get_word_category_wordnet_internal(word, language='en', debug=False):
             if len(hypernyms) == 0:
                 if debug:
                     print(f"No hypernyms found for {word}.")
-                cache_word_categories(word_lower, CAT_CACHE_UNKNOWN, language)
+                cache_word_categories(word_lower, CAT_CACHE_UNKNOWN)
                 return CAT_CACHE_UNKNOWN
 
             lemmas = hypernyms[0].lemmas()
             print(f"Exact match for {word} (hypernym: '{lemmas[0]}').")
-            cache_word_categories(word_lower, lemmas[0], language)
+            cache_word_categories(word_lower, lemmas[0])
             return lemmas[0]
 
         hypernyms = synset.hypernyms()
         if len(hypernyms) == 0:
             if debug:
                 print(f"No hypernyms found for {word}.")
-            cache_word_categories(word_lower, CAT_CACHE_UNKNOWN, language)
+            cache_word_categories(word_lower, CAT_CACHE_UNKNOWN)
             return CAT_CACHE_UNKNOWN
 
         hypernym = hypernyms[0]
         lemmas = hypernym.lemmas()
         print(f"Closest match for {word} (hypernym: '{lemmas[0]}').")
-        cache_word_categories(word_lower, lemmas[0], language)
+        cache_word_categories(word_lower, lemmas[0])
         return lemmas[0]
 
 
 def check_for_cached_word_categories(word, language='en', debug=False):
-    cached_category = get_cached_word_category(word, language)
+    cached_category = get_cached_word_category(word)
     if cached_category != CAT_CACHE_NOT_CACHED and cached_category != CAT_CACHE_ERROR:
         if debug:
             print(f"Cached category for '{word}' is '{cached_category}'.")
