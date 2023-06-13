@@ -1,3 +1,4 @@
+import math
 import multiprocessing
 
 import nltk
@@ -69,7 +70,7 @@ def worker(q, results):
 
 def get_cooccurrence(text, selected_lang):
     texts = preprocess_text(text, selected_lang)
-    parallelism = max(int(len(text) / 10000), 1)
+    parallelism = max(math.ceil(len(text) / 10000), 1)
     split_texts = [texts[i::parallelism] for i in range(parallelism)]
     print(f"Working with {parallelism} threads...")
 
