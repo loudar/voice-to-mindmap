@@ -31,7 +31,7 @@ def generate_plot(text):
 
 
 def main():
-    with open(source_file, 'r', encoding='windows-1252') as f:
+    with open(source_file, 'r', encoding='utf-8') as f:
         text = f.read()
 
     generate_plot(text)

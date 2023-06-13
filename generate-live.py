@@ -69,9 +69,9 @@ def update_plot(q, n):
     while not q.empty():
         text = q.get()  # Get the latest recognized text
         accumulated_text += text
-        with open(transcript_file, 'a') as file:
+        with open(transcript_file, 'a', encoding='utf-8') as file:
             file.write(text)
-        with open(latest_transcript_file, 'a') as file:
+        with open(latest_transcript_file, 'a', encoding='utf-8') as file:
             file.write(text)
         processor.add_task((accumulated_text, selected_lang, conversation_id, n))
 
@@ -147,7 +147,7 @@ if not started:
         print("Resetting...")
         conversation_id = datetime.now().strftime("%Y-%m-%d-%H_%M_%S")
         transcript_file = f"transcripts/transcript_{conversation_id}.txt"
-        with open(latest_transcript_file, 'w') as file:
+        with open(latest_transcript_file, 'w', encoding='utf-8') as file:
             file.write("")
 
 
