@@ -49,6 +49,7 @@ def link_worker(q, results, selected_lang, live_mode):
 
 
 def extract_logical_links_advanced(text, selected_lang, live_mode=False):
+    # could use keyPhrase extraction here: https://language.cognitive.azure.com/tryout/keyPhrases
     cooccurrence = get_cooccurrence(text, selected_lang)
 
     if len(cooccurrence) == 0:
